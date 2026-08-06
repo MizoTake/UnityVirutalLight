@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Added a per-material **Receive Standard Lighting** option to the Virtual Light Lit shader so URP main/additional lights, shadows, baked lighting, reflection probes, ambient lighting, and SSAO can be included or excluded independently of Virtual Lights and emission.
 - Added an Editor command that converts deduplicated URP Lit materials used by active or inactive Renderers in all loaded scenes while preserving compatible textures, texture transforms, parameters, keywords, render queue, instancing, and GI flags with Undo support.
 - Expanded the Virtual Light Lit receiver to use URP Lit-compatible metallic/specular, normal, height, occlusion, emission, detail, alpha clipping, transparency, culling, lightmapping, instancing, and auxiliary-pass inputs.
 - Made converted Specular Highlights and Receive Shadows settings apply to Virtual Light contribution as well as URP light contribution.

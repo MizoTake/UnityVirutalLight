@@ -205,6 +205,9 @@ namespace MizoTake.VirtualLight.Tests
         {
             var shader = Shader.Find("MizoTake/Virtual Light/Lit");
             Assert.That(shader, Is.Not.Null);
+            var customEditorProperty = typeof(Shader).GetProperty("customEditor", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.That(customEditorProperty, Is.Not.Null);
+            Assert.That(customEditorProperty.GetValue(shader), Is.EqualTo("MizoTake.VirtualLight.Editor.VirtualLightLitShaderGUI"));
             var material = new Material(shader);
             try
             {

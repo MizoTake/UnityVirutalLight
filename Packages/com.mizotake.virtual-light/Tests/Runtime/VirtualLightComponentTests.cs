@@ -52,6 +52,8 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
             receiver.GetComponent<Renderer>().sharedMaterial = material;
             yield return null;
             var baseline = RenderCenter(camera, renderTexture);

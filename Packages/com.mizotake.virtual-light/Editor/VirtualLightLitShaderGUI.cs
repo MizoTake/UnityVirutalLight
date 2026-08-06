@@ -4,7 +4,6 @@ using UnityEditor.Rendering;
 using UnityEditor.Rendering.Universal.ShaderGUI;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Rendering;
 
 namespace MizoTake.VirtualLight.Editor
 {
