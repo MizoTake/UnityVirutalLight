@@ -1,0 +1,60 @@
+#pragma kernel CullTiles
+
+struct VirtualLightGpu
+{
+    float4 positionRadius;
+    float4 colorIntensity;
+    float4 directionType;
+    float4 coneShadowFlags;
+    float4 areaSizeParams;
+};
+
+StructuredBuffer<VirtualLightGpu> _VirtualLights;
+RWStructuredBuffer<uint> _VirtualLightTileCounts;
+RWStructuredBuffer<uint> _VirtualLightTileIndices;
+uint _VirtualLightCount;
+uint _VirtualLightTileStride;
+float4 _VirtualLightScreenSize;
+float4x4 _VirtualLightView;
+float4x4 _VirtualLightViewProjection;
+float _VirtualLightProjectionScale;
+
+[numthreads(1, 1, 1)]
+void CullTiles(uint3 dispatchThreadId : SV_DispatchThreadID)
+{
+    uint tileCountX = (uint)_VirtualLightScreenSize.z;
+    uint tileCountY = (uint)_VirtualLightScreenSize.w;
+    if (dispatchThreadId.x >= tileCountX || dispatchThreadId.y >= tileCountY) return;
+    uint tileIndex = dispatchThreadId.y * tileCountX + dispatchThreadId.x;
+    float2 tileMinimum = float2(dispatchThreadId.xy * 16u);
+    float2 tileMaximum = min(tileMinimum + 16.0, _VirtualLightScreenSize.xy);
+    uint acceptedCount = 0;
+    for (uint lightIndex = 0; lightIndex < _VirtualLightCount; lightIndex++)
+    {
+        VirtualLightGpu light = _VirtualLights[lightIndex];
+        float4 clipPosition = mul(_VirtualLightViewProjection, float4(light.positionRadius.xyz, 1.0));
+        float3 viewPosition = mul(_VirtualLightView, float4(light.positionRadius.xyz, 1.0)).xyz;
+        float areaExtension = length(light.areaSizeParams.xy) * 0.5 * step(1.5, light.directionType.w);
+        float conservativeRadius = light.positionRadius.w + areaExtension;
+        bool overlaps = false;
+        if (clipPosition.w <= 0.0001)
+        {
+            overlaps = viewPosition.z - conservativeRadius <= 0.0;
+        }
+        else
+        {
+            float2 normalizedDevicePosition = clipPosition.xy / clipPosition.w;
+            float2 pixelPosition = (normalizedDevicePosition * 0.5 + 0.5) * _VirtualLightScreenSize.xy;
+            float pixelRadius = conservativeRadius * _VirtualLightProjectionScale * _VirtualLightScreenSize.y * 0.5 / max(abs(viewPosition.z), 0.001);
+            float2 mirroredTileMinimum = float2(tileMinimum.x, _VirtualLightScreenSize.y - tileMaximum.y);
+            float2 mirroredTileMaximum = float2(tileMaximum.x, _VirtualLightScreenSize.y - tileMinimum.y);
+            bool overlapsPrimary = all(pixelPosition + pixelRadius >= tileMinimum) && all(pixelPosition - pixelRadius <= tileMaximum);
+            bool overlapsMirrored = all(pixelPosition + pixelRadius >= mirroredTileMinimum) && all(pixelPosition - pixelRadius <= mirroredTileMaximum);
+            overlaps = overlapsPrimary || overlapsMirrored;
+        }
+        if (!overlaps) continue;
+        _VirtualLightTileIndices[tileIndex * _VirtualLightTileStride + acceptedCount] = lightIndex;
+        acceptedCount++;
+    }
+    _VirtualLightTileCounts[tileIndex] = acceptedCount;
+}

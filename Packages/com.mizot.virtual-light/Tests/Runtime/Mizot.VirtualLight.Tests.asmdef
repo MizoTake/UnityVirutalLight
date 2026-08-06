@@ -1,0 +1,10 @@
+{
+  "name": "Mizot.VirtualLight.Tests",
+  "rootNamespace": "MizoTake.VirtualLight.Tests",
+  "references": [
+    "Mizot.VirtualLight.Runtime"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

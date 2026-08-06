@@ -1,0 +1,13 @@
+{
+  "name": "Mizot.VirtualLight.AdvancedExamples.Editor.Tests",
+  "rootNamespace": "MizoTake.VirtualLight.AdvancedExamples.Tests",
+  "references": [
+    "Mizot.VirtualLight.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

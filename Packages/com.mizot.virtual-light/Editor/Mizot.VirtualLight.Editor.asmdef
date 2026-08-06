@@ -1,0 +1,10 @@
+{
+  "name": "Mizot.VirtualLight.Editor",
+  "rootNamespace": "MizoTake.VirtualLight.Editor",
+  "references": [
+    "Mizot.VirtualLight.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

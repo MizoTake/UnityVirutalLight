@@ -6,8 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/SampleScene.unity
-    guid: 99c9720ab356a0642a771bea13969a05
-  m_configObjects:
-    com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    path: Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity
+    guid: 7d094579681c7284ebeedadf0506206b
+  - enabled: 1
+    path: Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightAreaDirectionSample.unity
+    guid: a8d1ef84b4b75c545ae9419c31c9e7c8
+  - enabled: 1
+    path: Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightArenaSample.unity
+    guid: de51b1551ba13244aad23bd593cc317a
+  m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

@@ -1,0 +1,14 @@
+{
+  "name": "Mizot.VirtualLight.Editor.Tests",
+  "rootNamespace": "MizoTake.VirtualLight.Tests",
+  "references": [
+    "Mizot.VirtualLight.Runtime",
+    "Mizot.VirtualLight.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

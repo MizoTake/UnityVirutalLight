@@ -1,0 +1,26 @@
+{
+  "name": "com.mizot.virtual-light",
+  "version": "0.1.0",
+  "displayName": "Virtual Light",
+  "description": "GPU-driven virtual point, spot, and rectangle lights for Unity URP.",
+  "unity": "6000.0",
+  "dependencies": {
+    "com.unity.render-pipelines.universal": "17.0.4"
+  },
+  "keywords": [
+    "lighting",
+    "urp",
+    "gpu"
+  ],
+  "author": {
+    "name": "Virtual Light Contributors"
+  },
+  "license": "MIT",
+  "samples": [
+    {
+      "displayName": "Basic Virtual Lights",
+      "description": "A single static scene comparing Point, Spot, and Rectangle Area virtual lights.",
+      "path": "Samples~/Basic"
+    }
+  ]
+}
