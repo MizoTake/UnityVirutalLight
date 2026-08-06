@@ -1,5 +1,5 @@
 {
-  "name": "com.mizot.virtual-light",
+  "name": "com.mizotake.virtual-light",
   "version": "0.1.0",
   "displayName": "Virtual Light",
   "description": "GPU-driven virtual point, spot, and rectangle lights for Unity URP.",

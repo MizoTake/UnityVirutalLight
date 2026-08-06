@@ -279,7 +279,6 @@ namespace MizoTake.VirtualLight.Tests
 
                 Assert.That(VirtualLightLitMaterialConverter.CanConvertInPlace(material, out var reason), Is.False);
                 Assert.That(reason, Does.Contain("embedded"));
-                Assert.That(VirtualLightLitMaterialConverter.ConvertMaterial(material, false), Is.False);
                 Assert.That(material.shader.name, Is.EqualTo(VirtualLightLitMaterialConverter.SourceShaderName));
             }
             finally

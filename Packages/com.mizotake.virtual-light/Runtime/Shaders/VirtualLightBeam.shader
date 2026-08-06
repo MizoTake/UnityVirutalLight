@@ -1,4 +1,4 @@
-Shader "Mizot/Virtual Light/Beam"
+Shader "MizoTake/Virtual Light/Beam"
 {
     Properties
     {
@@ -42,7 +42,7 @@ Shader "Mizot/Virtual Light/Beam"
             #pragma shader_feature_local _BEAM_QUALITY_LOW _BEAM_QUALITY_HIGH
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-            #include "Packages/com.mizot.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
+            #include "Packages/com.mizotake.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;

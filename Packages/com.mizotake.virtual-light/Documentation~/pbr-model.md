@@ -1,8 +1,12 @@
 # PBR lighting model
 
-Virtual Light evaluates its direct lighting through the same URP BRDF helpers used by URP Lit. The included `Mizot/Virtual Light/Lit` shader initializes `BRDFData` from base color, metallic, smoothness, alpha, and optional clear coat values, then evaluates every selected virtual light with `LightingPhysicallyBased`.
+Virtual Light evaluates its direct lighting through the same URP BRDF helpers used by URP Lit. The included `MizoTake/Virtual Light/Lit` shader initializes `BRDFData` from base color, metallic, smoothness, alpha, and optional clear coat values, then evaluates every selected virtual light with `LightingPhysicallyBased`.
 
 This keeps the package's material response aligned with URP's metallic-roughness workflow instead of maintaining a second, subtly different Cook-Torrance implementation.
+
+## Standard URP lighting
+
+The material's **Receive Standard Lighting** option is enabled by default. When enabled, the shader evaluates URP's `UniversalFragmentPBR` path before adding Virtual Lights, so main and additional lights, their shadows, baked lighting, reflection probes, ambient lighting, and SSAO behave like URP Lit. When disabled, those standard contributions are skipped while Virtual Lights and material emission remain active. Shader debug-display variants continue to use URP's standard debug output regardless of this option.
 
 ## Material inputs
 

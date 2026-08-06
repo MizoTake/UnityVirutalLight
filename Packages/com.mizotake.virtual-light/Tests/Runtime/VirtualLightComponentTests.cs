@@ -48,7 +48,7 @@ namespace MizoTake.VirtualLight.Tests
             var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
             receiver.transform.position = Vector3.zero;
             receiver.transform.localScale = Vector3.one * 2f;
-            var shader = Shader.Find("Mizot/Virtual Light/Lit");
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_BaseColor", Color.white);
@@ -65,6 +65,55 @@ namespace MizoTake.VirtualLight.Tests
             var lit = RenderCenter(camera, renderTexture);
 
             Assert.That(lit.r, Is.GreaterThan(baseline.r + 0.05f));
+            Object.Destroy(lightObject);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
+        public IEnumerator CameraRender_StandardLightingOptionControlsUrpMainLightContribution()
+        {
+            VirtualLightSystem.ResetForTests();
+            var cameraObject = new GameObject("Standard Lighting Option Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -4f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 1.5f;
+            var renderTexture = new RenderTexture(64, 64, 24, RenderTextureFormat.ARGB32);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 2f;
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
+            Assert.That(shader, Is.Not.Null);
+            var material = new Material(shader);
+            material.SetColor("_BaseColor", Color.white);
+            receiver.GetComponent<Renderer>().sharedMaterial = material;
+            var lightObject = new GameObject("Standard Lighting Option Test Directional Light");
+            var standardLight = lightObject.AddComponent<Light>();
+            standardLight.type = LightType.Directional;
+            standardLight.color = Color.white;
+            standardLight.intensity = 2f;
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            yield return null;
+            var disabled = RenderCenter(camera, renderTexture);
+            material.SetFloat("_ReceiveStandardLighting", 1f);
+            material.DisableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            yield return null;
+            var enabled = RenderCenter(camera, renderTexture);
+
+            Assert.That(enabled.r, Is.GreaterThan(disabled.r + 0.05f));
+            Assert.That(enabled.g, Is.GreaterThan(disabled.g + 0.05f));
+            Assert.That(enabled.b, Is.GreaterThan(disabled.b + 0.05f));
             Object.Destroy(lightObject);
             Object.Destroy(receiver);
             Object.Destroy(cameraObject);
@@ -93,7 +142,7 @@ namespace MizoTake.VirtualLight.Tests
             var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
             receiver.transform.position = Vector3.zero;
             receiver.transform.localScale = Vector3.one * 2f;
-            var shader = Shader.Find("Mizot/Virtual Light/Lit");
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_BaseColor", Color.white);
@@ -519,7 +568,7 @@ namespace MizoTake.VirtualLight.Tests
             camera.depthTextureMode = DepthTextureMode.Depth;
             var renderTexture = new RenderTexture(64, 64, 24, RenderTextureFormat.ARGBHalf);
             camera.targetTexture = renderTexture;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", new Color(1f, 1f, 1f, 1f));
@@ -568,7 +617,7 @@ namespace MizoTake.VirtualLight.Tests
             camera.depthTextureMode = DepthTextureMode.Depth;
             var renderTexture = new RenderTexture(256, 128, 24, RenderTextureFormat.ARGBHalf);
             camera.targetTexture = renderTexture;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", Color.white);
@@ -624,7 +673,7 @@ namespace MizoTake.VirtualLight.Tests
             camera.depthTextureMode = DepthTextureMode.Depth;
             var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
             camera.targetTexture = renderTexture;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", Color.white);
@@ -675,7 +724,7 @@ namespace MizoTake.VirtualLight.Tests
             camera.depthTextureMode = DepthTextureMode.Depth;
             var renderTexture = new RenderTexture(256, 128, 24, RenderTextureFormat.ARGBHalf);
             camera.targetTexture = renderTexture;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", Color.white);
@@ -727,7 +776,7 @@ namespace MizoTake.VirtualLight.Tests
             camera.depthTextureMode = DepthTextureMode.Depth;
             var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
             camera.targetTexture = renderTexture;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", Color.white);
@@ -785,7 +834,7 @@ namespace MizoTake.VirtualLight.Tests
             virtualLight.InnerAngle = 6f;
             virtualLight.OuterAngle = 10f;
             virtualLight.CastShadow = false;
-            var shader = Shader.Find("Mizot/Virtual Light/Beam");
+            var shader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(shader, Is.Not.Null);
             var material = new Material(shader);
             material.SetColor("_Color", Color.white);
@@ -854,7 +903,7 @@ namespace MizoTake.VirtualLight.Tests
             var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
             receiver.transform.position = Vector3.zero;
             receiver.transform.localScale = Vector3.one * 2f;
-            var material = new Material(Shader.Find("Mizot/Virtual Light/Lit"));
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
             material.SetColor("_BaseColor", Color.white);
             receiver.GetComponent<Renderer>().sharedMaterial = material;
             yield return null;
@@ -906,7 +955,7 @@ namespace MizoTake.VirtualLight.Tests
             var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
             receiver.transform.position = Vector3.zero;
             receiver.transform.localScale = Vector3.one * 2f;
-            var material = new Material(Shader.Find("Mizot/Virtual Light/Lit"));
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
             material.SetColor("_BaseColor", Color.white);
             receiver.GetComponent<Renderer>().sharedMaterial = material;
             var lightObject = new GameObject("Virtual Light Local Shadow Spot");

@@ -1,4 +1,4 @@
-Shader "Mizot/Virtual Light/Impact Footprint"
+Shader "MizoTake/Virtual Light/Impact Footprint"
 {
     Properties
     {

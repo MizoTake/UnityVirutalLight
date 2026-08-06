@@ -2,7 +2,9 @@
   "name": "Mizot.VirtualLight.Editor",
   "rootNamespace": "MizoTake.VirtualLight.Editor",
   "references": [
-    "Mizot.VirtualLight.Runtime"
+    "Mizot.VirtualLight.Runtime",
+    "Unity.RenderPipelines.Core.Editor",
+    "Unity.RenderPipelines.Universal.Editor"
   ],
   "includePlatforms": [
     "Editor"

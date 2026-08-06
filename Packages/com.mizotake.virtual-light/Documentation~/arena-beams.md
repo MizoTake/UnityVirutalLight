@@ -1,6 +1,6 @@
 # Arena beam presentation
 
-`Mizot/Virtual Light/Beam` renders a lightweight participating-media approximation for Spot lights. A unit Cube is used only as a tight raymarch bound. The shader intersects each camera ray with a finite-aperture circular beam frustum, then integrates only the interval that contains participating-media radiance. `Source Aperture Radius` is specified in world-space meters and models the non-zero output lens instead of collapsing the beam to a mathematical point.
+`MizoTake/Virtual Light/Beam` renders a lightweight participating-media approximation for Spot lights. A unit Cube is used only as a tight raymarch bound. The shader intersects each camera ray with a finite-aperture circular beam frustum, then integrates only the interval that contains participating-media radiance. `Source Aperture Radius` is specified in world-space meters and models the non-zero output lens instead of collapsing the beam to a mathematical point.
 
 When `Truncate Visual At First Hit` and `Fit Visual To Spot Cone` are both explicitly enabled, `VirtualLightBeamOcclusion` sets the bound length to the current visible distance and its end diameter to:
 

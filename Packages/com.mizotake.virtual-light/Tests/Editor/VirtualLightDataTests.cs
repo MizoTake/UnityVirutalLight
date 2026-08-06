@@ -184,20 +184,43 @@ namespace MizoTake.VirtualLight.Tests
         [Test]
         public void Shaders_ImportWithoutErrorsAndComputeKernelExists()
         {
-            var shader = Shader.Find("Mizot/Virtual Light/Lit");
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
             Assert.That(shader, Is.Not.Null);
             var messages = ShaderUtil.GetShaderMessages(shader);
             Assert.That(messages, Has.None.Matches<ShaderMessage>(message => message.severity.ToString() == "Error"));
-            var beamShader = Shader.Find("Mizot/Virtual Light/Beam");
+            var beamShader = Shader.Find("MizoTake/Virtual Light/Beam");
             Assert.That(beamShader, Is.Not.Null);
             var beamMessages = ShaderUtil.GetShaderMessages(beamShader);
             Assert.That(beamMessages, Has.None.Matches<ShaderMessage>(message => message.severity.ToString() == "Error"));
-            var impactShader = Shader.Find("Mizot/Virtual Light/Impact Footprint");
+            var impactShader = Shader.Find("MizoTake/Virtual Light/Impact Footprint");
             Assert.That(impactShader, Is.Not.Null);
             var impactMessages = ShaderUtil.GetShaderMessages(impactShader);
             Assert.That(impactMessages, Has.None.Matches<ShaderMessage>(message => message.severity.ToString() == "Error"));
             var computeShader = Resources.Load<ComputeShader>("VirtualLightTileCulling");
             Assert.That(computeShader, Is.Not.Null);
+        }
+
+        [Test]
+        public void LitShader_StandardLightingOptionIsEnabledByDefault()
+        {
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
+            Assert.That(shader, Is.Not.Null);
+            var material = new Material(shader);
+            try
+            {
+                Assert.That(material.HasProperty("_ReceiveStandardLighting"), Is.True);
+                Assert.That(material.GetFloat("_ReceiveStandardLighting"), Is.EqualTo(1f));
+                material.SetFloat("_ReceiveStandardLighting", 0f);
+                MaterialEditor.ApplyMaterialPropertyDrawers(material);
+                Assert.That(material.IsKeywordEnabled("_RECEIVE_STANDARD_LIGHTING_OFF"), Is.True);
+                material.SetFloat("_ReceiveStandardLighting", 1f);
+                MaterialEditor.ApplyMaterialPropertyDrawers(material);
+                Assert.That(material.IsKeywordEnabled("_RECEIVE_STANDARD_LIGHTING_OFF"), Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(material);
+            }
         }
 
         [Test]

@@ -5,7 +5,7 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #endif
 #ifndef MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS
-#include "Packages/com.mizot.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
+#include "Packages/com.mizotake.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
 #endif
 
 struct VirtualLightGpu

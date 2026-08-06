@@ -12,7 +12,7 @@ namespace MizoTake.VirtualLight.Editor
     public static class VirtualLightLitMaterialConverter
     {
         public const string SourceShaderName = "Universal Render Pipeline/Lit";
-        public const string TargetShaderName = "Mizot/Virtual Light/Lit";
+        public const string TargetShaderName = "MizoTake/Virtual Light/Lit";
         private const string MenuPath = "Tools/Virtual Light/Convert URP Lit Materials in Loaded Scenes";
 
         [MenuItem(MenuPath)]
@@ -25,16 +25,18 @@ namespace MizoTake.VirtualLight.Editor
                 return;
             }
             if (!EditorUtility.DisplayDialog("Virtual Light Lit Converter", $"Convert {materials.Count} shared material(s) used by Renderers in the loaded scenes to {TargetShaderName}?\n\nMaterial assets are converted in place, so other scenes and prefabs that reference the same assets are also affected. The operation can be undone in the current Editor session.", "Convert", "Cancel")) return;
+            Undo.IncrementCurrentGroup();
             var undoGroup = Undo.GetCurrentGroup();
             Undo.SetCurrentGroupName("Convert URP Lit Materials to Virtual Light Lit");
             var convertedCount = 0;
             foreach (var material in materials)
             {
-                if (ConvertMaterial(material)) convertedCount++;
+                if (!ConvertMaterial(material)) continue;
+                convertedCount++;
+                if (EditorUtility.IsPersistent(material)) AssetDatabase.SaveAssetIfDirty(material);
             }
             Undo.CollapseUndoOperations(undoGroup);
             MarkScenesContainingNonPersistentMaterialsDirty(materials);
-            AssetDatabase.SaveAssets();
             var skippedCount = materials.Count - convertedCount;
             var skippedMessage = skippedCount == 0 ? string.Empty : $"\n\nSkipped {skippedCount} material(s) that cannot be edited in place. See the Console for details.";
             EditorUtility.DisplayDialog("Virtual Light Lit Converter", $"Converted {convertedCount} of {materials.Count} material(s).{skippedMessage}", "OK");

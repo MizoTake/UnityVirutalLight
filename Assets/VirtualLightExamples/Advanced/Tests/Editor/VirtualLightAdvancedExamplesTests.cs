@@ -55,7 +55,7 @@ namespace MizoTake.VirtualLight.AdvancedExamples.Tests
             Assert.That(occlusion.MaximumRefreshRate, Is.EqualTo(60f).Within(0.001f));
             Assert.That(occlusion.ImpactVisual.localScale.z, Is.EqualTo(0.02f).Within(0.0001f));
             Assert.That(occlusion.ImpactVisual.GetComponent<MeshFilter>().sharedMesh.name, Is.EqualTo("Quad"));
-            Assert.That(occlusion.ImpactVisual.GetComponent<Renderer>().sharedMaterial.shader.name, Is.EqualTo("Mizot/Virtual Light/Impact Footprint"));
+            Assert.That(occlusion.ImpactVisual.GetComponent<Renderer>().sharedMaterial.shader.name, Is.EqualTo("MizoTake/Virtual Light/Impact Footprint"));
         }
 
         [Test]

@@ -1,4 +1,4 @@
-Shader "Mizot/Virtual Light/Lit"
+Shader "MizoTake/Virtual Light/Lit"
 {
     Properties
     {
@@ -43,6 +43,7 @@ Shader "Mizot/Virtual Light/Lit"
         [HideInInspector] _BlendModePreserveSpecular("_BlendModePreserveSpecular", Float) = 1.0
         [HideInInspector] _AlphaToMask("__alphaToMask", Float) = 0.0
         [HideInInspector] _AddPrecomputedVelocity("_AddPrecomputedVelocity", Float) = 0.0
+        [ToggleOff(_RECEIVE_STANDARD_LIGHTING_OFF)] _ReceiveStandardLighting("Receive Standard Lighting", Float) = 1.0
         [ToggleUI] _ReceiveShadows("Receive Shadows", Float) = 1.0
         _QueueOffset("Queue offset", Float) = 0.0
         [HideInInspector] _MainTex("BaseMap", 2D) = "white" {}
@@ -86,6 +87,7 @@ Shader "Mizot/Virtual Light/Lit"
             #pragma shader_feature_local_fragment _OCCLUSIONMAP
             #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
             #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+            #pragma shader_feature_local_fragment _RECEIVE_STANDARD_LIGHTING_OFF
             #pragma shader_feature_local_fragment _SPECULAR_SETUP
             #pragma shader_feature_local_fragment _ _CLEARCOAT _CLEARCOATMAP
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
@@ -151,7 +153,11 @@ Shader "Mizot/Virtual Light/Lit"
                 ApplyDecalToSurfaceData(input.positionCS, surfaceData, inputData);
 #endif
                 InitializeBakedGIData(input, inputData);
+#if defined(_RECEIVE_STANDARD_LIGHTING_OFF) && !defined(DEBUG_DISPLAY)
+                half4 color = half4(surfaceData.emission, surfaceData.alpha);
+#else
                 half4 color = UniversalFragmentPBR(inputData, surfaceData);
+#endif
 #if !defined(DEBUG_DISPLAY)
                 BRDFData virtualLightBrdfData;
                 InitializeBRDFData(surfaceData, virtualLightBrdfData);
@@ -180,6 +186,6 @@ Shader "Mizot/Virtual Light/Lit"
         UsePass "Universal Render Pipeline/Lit/XRMotionVectors"
     }
 
-    CustomEditor "UnityEditor.Rendering.Universal.ShaderGUI.LitShader"
+    CustomEditor "MizoTake.VirtualLight.Editor.VirtualLightLitShaderGUI"
     Fallback "Hidden/Universal Render Pipeline/FallbackError"
 }

@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "com.mizot.virtual-light": {
-      "version": "file:com.mizot.virtual-light",
+    "com.mizotake.virtual-light": {
+      "version": "file:com.mizotake.virtual-light",
       "depth": 0,
       "source": "embedded",
       "dependencies": {

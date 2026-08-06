@@ -10,6 +10,6 @@
     "com.yucchiy.unicli-server": "https://github.com/yucchiy/UniCli.git?path=src/UniCli.Unity/Packages/com.yucchiy.unicli-server#v1.6.0"
   },
   "testables": [
-    "com.mizot.virtual-light"
+    "com.mizotake.virtual-light"
   ]
 }

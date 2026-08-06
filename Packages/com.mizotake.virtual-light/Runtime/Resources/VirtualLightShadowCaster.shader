@@ -1,4 +1,4 @@
-Shader "Hidden/Mizot/Virtual Light/Shadow Caster"
+Shader "Hidden/MizoTake/Virtual Light/Shadow Caster"
 {
     SubShader
     {
