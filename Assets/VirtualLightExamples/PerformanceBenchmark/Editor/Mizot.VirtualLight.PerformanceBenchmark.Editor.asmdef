@@ -1,0 +1,12 @@
+{
+  "name": "Mizot.VirtualLight.PerformanceBenchmark.Editor",
+  "rootNamespace": "MizoTake.VirtualLight.PerformanceBenchmark.Editor",
+  "references": [
+    "Mizot.VirtualLight.PerformanceBenchmark",
+    "Mizot.VirtualLight.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Mizot.VirtualLight.PerformanceBenchmark",
+  "rootNamespace": "MizoTake.VirtualLight.PerformanceBenchmark",
+  "references": [
+    "Mizot.VirtualLight.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ]
+}

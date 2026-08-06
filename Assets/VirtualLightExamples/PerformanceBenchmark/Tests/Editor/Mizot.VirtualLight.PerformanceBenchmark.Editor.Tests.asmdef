@@ -1,0 +1,16 @@
+{
+  "name": "Mizot.VirtualLight.PerformanceBenchmark.Editor.Tests",
+  "rootNamespace": "MizoTake.VirtualLight.PerformanceBenchmark.Tests",
+  "references": [
+    "Mizot.VirtualLight.PerformanceBenchmark",
+    "Mizot.VirtualLight.PerformanceBenchmark.Editor",
+    "Mizot.VirtualLight.Runtime",
+    "Unity.RenderPipelines.Universal.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
