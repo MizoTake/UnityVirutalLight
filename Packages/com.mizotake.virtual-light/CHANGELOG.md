@@ -2,8 +2,11 @@
 
 ## [Unreleased]
 
+- Added a project-wide Virtual Light System Settings window for persisted shadow quality, depth bias, normal bias, and caster-layer defaults shared by Editor rendering and Player startup.
+- Added Directional Virtual Lights with position- and range-independent direct lighting, full-screen tile selection, forward-direction editor gizmos, and Unity Directional Light conversion. Custom Directional shadows remain unsupported.
 - Added a per-material **Receive Standard Lighting** option to the Virtual Light Lit shader so URP main/additional lights, shadows, baked lighting, reflection probes, ambient lighting, and SSAO can be included or excluded independently of Virtual Lights and emission.
 - Added an Editor command that converts deduplicated URP Lit materials used by active or inactive Renderers in all loaded scenes while preserving compatible textures, texture transforms, parameters, keywords, render queue, instancing, and GI flags with Undo support.
+- Added Editor commands for replacing selected or current-stage Unity Directional, Point, Spot, and Rectangle `Light` components with parameter-preserving `VirtualLight` components, including dependency-safe skipping and grouped Undo/Redo.
 - Expanded the Virtual Light Lit receiver to use URP Lit-compatible metallic/specular, normal, height, occlusion, emission, detail, alpha clipping, transparency, culling, lightmapping, instancing, and auxiliary-pass inputs.
 - Made converted Specular Highlights and Receive Shadows settings apply to Virtual Light contribution as well as URP light contribution.
 - Added explicit zero-light buffer bindings for Direct3D 12 so Virtual Light receiver and beam shaders remain drawable before any light or shadow is registered.

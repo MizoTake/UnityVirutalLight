@@ -21,8 +21,8 @@ namespace MizoTake.VirtualLight
                 var rightStatic = (right.Descriptor.Flags & VirtualLightFlags.Static) != 0;
                 var result = rightStatic.CompareTo(leftStatic);
                 if (result != 0) return result;
-                var leftShadow = (left.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
-                var rightShadow = (right.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
+                var leftShadow = left.Descriptor.Type == VirtualLightType.Spot && (left.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
+                var rightShadow = right.Descriptor.Type == VirtualLightType.Spot && (right.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
                 result = rightShadow.CompareTo(leftShadow);
                 if (result != 0) return result;
                 result = right.Descriptor.Priority.CompareTo(left.Descriptor.Priority);
@@ -37,6 +37,7 @@ namespace MizoTake.VirtualLight
 
             private static float EstimateContribution(in VirtualLightDescriptor descriptor, Vector3 cameraPosition)
             {
+                if (descriptor.Type == VirtualLightType.Directional) return descriptor.Intensity;
                 var distanceSquared = Mathf.Max((descriptor.Position - cameraPosition).sqrMagnitude, 0.01f);
                 return descriptor.Intensity * descriptor.Radius * descriptor.Radius / distanceSquared;
             }
@@ -52,6 +53,9 @@ namespace MizoTake.VirtualLight
             private int nextId = 1;
 
             public VirtualLightQuality Quality { get; private set; } = VirtualLightQuality.Medium;
+            public float ShadowDepthBias { get; private set; } = VirtualLightSystemSettings.DefaultShadowDepthBias;
+            public float ShadowNormalBias { get; private set; } = VirtualLightSystemSettings.DefaultShadowNormalBias;
+            public int ShadowCasterLayerMask { get; private set; } = VirtualLightSystemSettings.DefaultShadowCasterLayerMask;
             public int Count => entries.Count;
 
             VirtualLightHandle IVirtualLightSystem.Register(in VirtualLightDescriptor descriptor)
@@ -96,7 +100,20 @@ namespace MizoTake.VirtualLight
 
             void IVirtualLightSystem.SetQuality(VirtualLightQuality quality)
             {
-                Quality = quality;
+                Quality = VirtualLightSystemSettings.SanitizeQuality(quality);
+            }
+
+            void IVirtualLightSystem.ApplySettings(VirtualLightSystemSettings settings)
+            {
+                if (settings == null)
+                {
+                    ResetSettings();
+                    return;
+                }
+                Quality = settings.Quality;
+                ShadowDepthBias = settings.ShadowDepthBias;
+                ShadowNormalBias = settings.ShadowNormalBias;
+                ShadowCasterLayerMask = settings.ShadowCasterLayers.value;
             }
 
             public bool TryGetDescriptor(VirtualLightHandle handle, out VirtualLightDescriptor descriptor)
@@ -116,7 +133,7 @@ namespace MizoTake.VirtualLight
                 foreach (var entry in entries.Values)
                 {
                     var descriptor = entry.Descriptor;
-                    if ((descriptor.Flags & VirtualLightFlags.Enabled) != 0 && descriptor.Radius > 0f && descriptor.Intensity > 0f) selection.Add(entry);
+                    if ((descriptor.Flags & VirtualLightFlags.Enabled) != 0 && (descriptor.Type == VirtualLightType.Directional || descriptor.Radius > 0f) && descriptor.Intensity > 0f) selection.Add(entry);
                 }
                 comparer.CameraPosition = cameraPosition;
                 selection.Sort(comparer);
@@ -138,7 +155,15 @@ namespace MizoTake.VirtualLight
                 freeIds.Clear();
                 selection.Clear();
                 nextId = 1;
+                ResetSettings();
+            }
+
+            private void ResetSettings()
+            {
                 Quality = VirtualLightQuality.Medium;
+                ShadowDepthBias = VirtualLightSystemSettings.DefaultShadowDepthBias;
+                ShadowNormalBias = VirtualLightSystemSettings.DefaultShadowNormalBias;
+                ShadowCasterLayerMask = VirtualLightSystemSettings.DefaultShadowCasterLayerMask;
             }
 
             private bool TryGetEntry(VirtualLightHandle handle, out Entry entry)
@@ -151,6 +176,9 @@ namespace MizoTake.VirtualLight
         public static IVirtualLightSystem Current => Instance;
         public static int RegisteredCount => Instance.Count;
         public static VirtualLightQuality Quality => Instance.Quality;
+        public static float ShadowDepthBias => Instance.ShadowDepthBias;
+        public static float ShadowNormalBias => Instance.ShadowNormalBias;
+        public static int ShadowCasterLayerMask => Instance.ShadowCasterLayerMask;
 
         internal static bool TryGetDescriptor(VirtualLightHandle handle, out VirtualLightDescriptor descriptor)
         {

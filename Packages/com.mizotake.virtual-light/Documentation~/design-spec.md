@@ -62,7 +62,7 @@
 - 厳密な波動光学
 - 偏光
 - スペクトル単位の色分散
-- Point型とRectangle Area型のシャドウ、および透明物体を透過する厳密なシャドウ
+- Directional型、Point型、Rectangle Area型のシャドウ、および透明物体を透過する厳密なシャドウ
 - モバイル端末を基準とした最適化
 
 ---
@@ -73,7 +73,7 @@
 
 1. ランタイム中に仮想ライトを追加・更新・削除できること。
 2. 仮想ライトは位置、色、強度、半径、方向、種類を持つこと。
-3. Point型、Spot型、Rectangle Area型を必須対応とすること。
+3. Directional型、Point型、Spot型、Rectangle Area型を必須対応とすること。
 4. Rectangle Area型は幅・高さ・片面発光方向・近似サンプル数を指定できること。
 5. 仮想ライトが不透明物体のPBRライティングへ影響すること。
 6. 必要に応じて、透明物体・霧・水中表現へも影響できること。
@@ -238,7 +238,7 @@ public struct VirtualLightGpu
 | 0 | Point | MVP |
 | 1 | Spot | MVP |
 | 2 | Rectangle Area | MVP |
-| 3 | Directional Proxy | 任意 |
+| 3 | Directional | MVP |
 | 4 | Disc Area | Phase 2 |
 | 5 | Tube / Line Area | Phase 2 |
 | 6 | Generated VPL | Phase 2 |
@@ -331,7 +331,7 @@ public sealed class VirtualLight : MonoBehaviour
 ```
 
 - `transform.position`: ライト中心。
-- `transform.forward`: SpotおよびAreaの照射方向。
+- `transform.forward`: Directional、SpotおよびAreaの光線進行／照射方向。Directionalの位置とRangeは照明結果へ影響しない。
 - `transform.right / up`: Rectangle Areaの面方向。
 - Transform Scaleはライト寸法へ暗黙反映せず、`Range`と`AreaSize`を明示値として扱う。
 - 負のScaleは未対応とし、Inspectorに警告を表示する。
@@ -392,7 +392,12 @@ VirtualLightは、非選択時でも種類と大まかな範囲が分かり、�
 - `showSamplePoints` 有効時は、内部近似に使用するPoint/Spotサンプル位置を面上に表示する。
 - サンプル点はランタイムの近似配置と一致させる。
 
-### 8.6 Area Lightのランタイム近似
+### 8.6 Directional Gizmo
+
+- `transform.forward`方向へ複数の平行矢印を表示する。
+- 位置およびRangeに依存する影響範囲は表示せず、選択時にもRangeハンドルを表示しない。
+
+### 8.7 Area Lightのランタイム近似
 
 Rectangle Areaは、MVPではLTC等の厳密な面光源評価を必須とせず、用途と品質に応じて以下を切り替える。
 
@@ -405,7 +410,7 @@ Rectangle Areaは、MVPではLTC等の厳密な面光源評価を必須とせず
 
 既定は4サンプルとし、サンプル数は1、2、4、8、16から選択する。サンプルごとの強度は総エネルギーが増えないよう `Intensity / SampleCount` を基準に配分する。
 
-### 8.7 Sceneビューのデバッグ切替
+### 8.8 Sceneビューのデバッグ切替
 
 InspectorまたはSceneビューOverlayから次を切り替えられるようにする。
 
@@ -418,7 +423,7 @@ InspectorまたはSceneビューOverlayから次を切り替えられるよう�
 - カリング状態
 - 遮蔽モード
 
-### 8.8 Custom Editor要件
+### 8.9 Custom Editor要件
 
 - ライト種別ごとに不要な項目を非表示にする。
 - SpotではInner/Outer Angleを角度スライダーで編集できること。
@@ -428,7 +433,7 @@ InspectorまたはSceneビューOverlayから次を切り替えられるよう�
 - 不正値、未対応Scale、GPUリソース確保失敗、シャドウなしへの縮退をHelpBoxで通知する。
 - `OnSceneGUI`の操作中は `Undo.RecordObject` を使用し、変更後に `EditorUtility.SetDirty` を適切に呼ぶ。
 
-### 8.9 Gizmo実装方針
+### 8.10 Gizmo実装方針
 
 - 非選択表示: `OnDrawGizmos` / `OnDrawGizmosSelected`。
 - 編集ハンドル: `CustomEditor.OnSceneGUI`。
@@ -624,7 +629,7 @@ LightFieldCurrent
 - `VirtualLightOccluder`配下の不透明Rendererを、登録済みのシャドウキャスターとして描画する。
 - 不透明PBRシェーダーとビームボリュームは、各Spotライトに割り当てた同一スライスのVisibilityを参照する。
 - ビームボリューム自体はシャドウキャスターに含めず、複数ビームの放射輝度は加算する。
-- 生成VPL、Point型、Rectangle Area型には、必要に応じてSDFまたはVoxel近似を拡張する。
+- 生成VPL、Directional型、Point型、Rectangle Area型には、必要に応じてSDFまたはVoxel近似を拡張する。
 - 高品質設定では、選択した遮蔽方式をレイトレーシングへ置換可能とする。
 
 ### 13.3 動的Spot Shadow Texture2DArray
@@ -855,6 +860,7 @@ GPUカウンタとして以下を取得する。
 
 - [ ] Point型仮想ライトをランタイムで追加・移動・削除できる。
 - [ ] Spot型仮想ライトを利用できる。
+- [ ] Directional型仮想ライトが位置とRangeに依存せず、全タイルの不透明PBRマテリアルへ影響する。
 - [ ] 色、強度、半径の変更が1フレーム以内に反映される。
 - [ ] 64灯を登録しても描画が破綻しない。
 - [ ] タイルまたはクラスタ単位のライト選別が動作する。
@@ -893,6 +899,7 @@ GPUカウンタとして以下を取得する。
 4. 半径外で寄与が0になることを確認する。
 5. 遮蔽物の前後でVisibilityが変化することを確認する。
 6. ライト登録数を段階的に増減し、GPUバッファが動的に拡張および再利用されることを確認する。
+7. Directionalライトの移動とRange変更では寄与が変わらず、回転で全タイルの受光方向が変わることを確認する。
 7. カメラカット時にTemporal履歴が残らないことを確認する。
 
 ### 22.2 性能テスト

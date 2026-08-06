@@ -3,7 +3,8 @@
   "rootNamespace": "MizoTake.VirtualLight.Tests",
   "references": [
     "Mizot.VirtualLight.Runtime",
-    "Mizot.VirtualLight.Editor"
+    "Mizot.VirtualLight.Editor",
+    "Unity.RenderPipelines.Universal.Runtime"
   ],
   "includePlatforms": [
     "Editor"

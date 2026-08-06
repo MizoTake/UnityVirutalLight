@@ -27,6 +27,9 @@ namespace MizoTake.VirtualLight.Editor
                 case VirtualLightType.RectangleArea:
                     DrawArea(virtualLight, iconSize);
                     break;
+                case VirtualLightType.Directional:
+                    DrawDirectional(virtualLight, iconSize);
+                    break;
             }
         }
 
@@ -62,6 +65,18 @@ namespace MizoTake.VirtualLight.Editor
                 foreach (var corner in corners) Handles.DrawDottedLine(corner, corner + transform.forward * virtualLight.Range, 4f);
             }
             if (virtualLight.ShowSamplePoints) DrawAreaSamples(virtualLight);
+        }
+
+        private static void DrawDirectional(MizoTake.VirtualLight.VirtualLight virtualLight, float iconSize)
+        {
+            var transform = virtualLight.transform;
+            var arrowSize = iconSize * 1.5f;
+            var offset = iconSize * 0.6f;
+            Handles.ArrowHandleCap(0, transform.position, transform.rotation, arrowSize, EventType.Repaint);
+            Handles.ArrowHandleCap(0, transform.position + transform.right * offset, transform.rotation, arrowSize, EventType.Repaint);
+            Handles.ArrowHandleCap(0, transform.position - transform.right * offset, transform.rotation, arrowSize, EventType.Repaint);
+            Handles.ArrowHandleCap(0, transform.position + transform.up * offset, transform.rotation, arrowSize, EventType.Repaint);
+            Handles.ArrowHandleCap(0, transform.position - transform.up * offset, transform.rotation, arrowSize, EventType.Repaint);
         }
 
         private static void DrawAreaSamples(MizoTake.VirtualLight.VirtualLight virtualLight)

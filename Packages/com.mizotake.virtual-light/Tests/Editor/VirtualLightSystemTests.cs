@@ -77,6 +77,57 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [Test]
+        public void SelectLights_DirectionalDoesNotRequireRadius()
+        {
+            var system = VirtualLightSystem.Current;
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Directional;
+            descriptor.Radius = 0f;
+            var handle = system.Register(in descriptor);
+
+            var selected = VirtualLightSystem.SelectHandlesForTests(new Vector3(1000f, -500f, 250f), 1);
+
+            Assert.That(selected, Is.EqualTo(new[] { handle }));
+        }
+
+        [Test]
+        public void SelectLights_DirectionalContributionIsIndependentOfPosition()
+        {
+            var system = VirtualLightSystem.Current;
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Directional;
+            descriptor.Radius = 0f;
+            descriptor.Position = new Vector3(100000f, -50000f, 25000f);
+            descriptor.Intensity = 2f;
+            var stronger = system.Register(in descriptor);
+            descriptor.Position = Vector3.zero;
+            descriptor.Intensity = 1f;
+            system.Register(in descriptor);
+
+            var selected = VirtualLightSystem.SelectHandlesForTests(Vector3.zero, 1);
+
+            Assert.That(selected, Is.EqualTo(new[] { stronger }));
+        }
+
+        [Test]
+        public void SelectLights_UnsupportedDirectionalShadowIntentDoesNotChangePriority()
+        {
+            var system = VirtualLightSystem.Current;
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Directional;
+            descriptor.Radius = 0f;
+            descriptor.Intensity = 2f;
+            var stronger = system.Register(in descriptor);
+            descriptor.Intensity = 1f;
+            descriptor.Flags |= VirtualLightFlags.CastShadow;
+            system.Register(in descriptor);
+
+            var selected = VirtualLightSystem.SelectHandlesForTests(Vector3.zero, 1);
+
+            Assert.That(selected, Is.EqualTo(new[] { stronger }));
+        }
+
+        [Test]
         public void EvaluateRangeAttenuation_IsFiniteAndZeroOutsideRadius()
         {
             Assert.That(VirtualLightMath.EvaluateRangeAttenuation(5f, 5f), Is.Zero);

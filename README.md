@@ -1,6 +1,6 @@
 # Virtual Light
 
-Virtual Lightは、Unity標準の`Light`とは独立して動作する、Unity 6 / Universal Render Pipeline（URP）向けのGPU駆動ライトパッケージです。Point、Spot、Rectangle Areaの仮想ライトをコンポーネントまたはRuntime APIから登録し、付属の受光シェーダーやカスタムシェーダーで評価できます。
+Virtual Lightは、Unity標準の`Light`とは独立して動作する、Unity 6 / Universal Render Pipeline（URP）向けのGPU駆動ライトパッケージです。Directional、Point、Spot、Rectangle Areaの仮想ライトをコンポーネントまたはRuntime APIから登録し、付属の受光シェーダーやカスタムシェーダーで評価できます。
 
 > [!IMPORTANT]
 > 現在のpackage manifestは`0.1.0`です。`master`には[CHANGELOG](Packages/com.mizotake.virtual-light/CHANGELOG.md)の`Unreleased`に記載された開発中の変更が含まれており、固定リリースタグはまだありません。
@@ -43,8 +43,9 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 
 ### ライトとRuntime API
 
-- Point、Spot、Rectangle Areaの3種類
+- Directional、Point、Spot、Rectangle Areaの4種類
 - `VirtualLight`コンポーネントによる手動配置とInspector編集
+- **Tools > Virtual Light**から、現在の編集Stageまたは選択中のUnity標準`Light`をパラメーター付きで`VirtualLight`へ置換
 - `VirtualLightSystem.Current` / `IVirtualLightSystem`による登録、更新、解除
 - 世代付きhandleによる、再利用済みslotへの古いhandle操作の防止
 - active light数に合わせて拡張されるGPU buffer。パッケージ側の固定light数上限はなし
@@ -72,10 +73,16 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 1. Package Managerで**Basic Virtual Lights** sampleをImportします。
 2. GameObjectへ**Add Component > Rendering > Virtual Light**から`VirtualLight`を追加します。
 3. 受光するRendererのマテリアルに`MizoTake/Virtual Light/Lit`を使用します。既存のURP Litマテリアルは変換ツールを利用できます。
-4. Point、Spot、Rectangle Areaを切り替え、色、強度、範囲、cone angle、area sizeなどを調整します。
+4. Directional、Point、Spot、Rectangle Areaを切り替え、色、強度、適用可能な範囲、cone angle、area sizeなどを調整します。Directionalは位置と範囲に依存せず、`transform.forward`を光線の進行方向として使用します。
 5. 独自システムから動的に生成する場合は、[`Documentation~/index.md`](Packages/com.mizotake.virtual-light/Documentation~/index.md)のRuntime API例を参照してください。
 
 標準のURP Litマテリアルは、そのままではVirtual Lightを受光しません。付属シェーダーへの変更、変換ツール、またはHLSL組み込みのいずれかが必要です。
+
+### Unity標準Lightからの置換
+
+**Tools > Virtual Light > Convert Light Components in Current Stage**は、通常のScene編集では読み込まれているScene内、Prefab StageではそのPrefab内の`Light`を置換します。**Convert Selected Light Components**は、選択GameObject自身に付いている`Light`だけを置換します。Light Inspectorのcontext menuから1件ずつ実行することもできます。
+
+Directional、Point、Spot、Rectangleのtype、color、color temperature、intensity、enabled、適用可能なrange、Spot angle、Rectangle size、shadow有効状態を対応する値へ引き継ぎます。Disc、Pyramid、Box、Tube、既存`VirtualLight`と競合するもの、未知の`Light`必須componentを持つものは元の`Light`を残してスキップします。`Light`型の参照、Cookie、bake設定、culling／rendering layer、shadow詳細は引き継げません。Directional／Point／Rectangle shadowは未対応で、Spot shadowには`VirtualLightOccluder`が必要です。変換はUndo可能ですが、SceneやPrefabは自動保存しません。
 
 ## サンプル
 
@@ -88,7 +95,7 @@ UPMからImportできるのはBasic sampleです。Advanced examplesはパッケ
 
 ## 現在の制限
 
-- PointおよびRectangle Areaのshadowは未対応
+- Directional、PointおよびRectangle Areaのshadowは未対応
 - alpha clip / transparent objectのshadow castingとtransparent shadow transmissionは保証対象外
 - light field、temporal accumulation、multiple scattering、generated VPL、ray tracingは未対応
 - Rectangle Areaはsampled approximationで、analytic LTC、barn door、IES配光には未対応

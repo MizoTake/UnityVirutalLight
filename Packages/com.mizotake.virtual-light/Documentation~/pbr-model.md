@@ -32,6 +32,10 @@ attenuation = saturate(1 - (distance / range)^4)^2 / max(distance^2, 0.0001)
 
 The smooth window reaches zero at the configured range without replacing the inverse-square core. Spot lights multiply this by a linearly remapped cone term between the outer and inner cone cosines. `Surface Penumbra Sharpness = 0` uses the standard squared term. Increasing it continuously focuses only the inner-to-outer transition toward an eighth-power term while keeping attenuation at one on the inner boundary and zero on the outer boundary. This makes the visible receiver highlight follow the inner cone without changing beam bounds or shadow projection.
 
+## Directional lights
+
+Directional lights use `transform.forward` as the direction in which light rays travel. The BRDF therefore receives `-transform.forward` as the surface-to-light direction. Their direct-light attenuation is constant at one: Transform position and Range do not affect the result, and the light is included in every screen tile. `Intensity` scales the directional light color directly. Custom Directional shadows are not currently supported.
+
 ## Spot shadow visibility
 
 Shadow-enabled Spot lights use a custom light-space shadow-map `Texture2DArray`. The array and its matrix metadata are sized dynamically, with a separate slice for each eligible Spot. Visibility from that slice multiplies only the owning light's BRDF contribution; it does not impose a shared axial cutoff on the receiver. The participating-media beam shader samples the same slice during raymarching so opaque PBR and beam-volume visibility remain associated with the same light.

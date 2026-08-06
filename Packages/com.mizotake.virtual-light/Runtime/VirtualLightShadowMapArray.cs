@@ -74,7 +74,7 @@ namespace MizoTake.VirtualLight
             }
             try
             {
-                var resolution = ShadowResolution(VirtualLightSystem.Quality);
+                var resolution = VirtualLightSystemSettings.GetShadowMapResolution(VirtualLightSystem.Quality);
                 EnsureResources(shadowCount, resolution);
                 VirtualLightBeamVolume.CollectSourceApertures(SourceApertures);
                 var slot = 0;
@@ -244,7 +244,7 @@ namespace MizoTake.VirtualLight
                 command.SetGlobalBuffer(ShadowMatricesId, matrixBuffer);
                 command.SetGlobalBuffer(ShadowLightParamsId, lightParamsBuffer);
                 command.SetGlobalInt(ShadowCountId, shadowCount);
-                command.SetGlobalVector(ShadowSamplingParamsId, new Vector4(1f / resolution, 1f / resolution, 0.0015f, 0.003f));
+                command.SetGlobalVector(ShadowSamplingParamsId, BuildShadowSamplingParameters(resolution));
                 context.ExecuteCommandBuffer(command);
             }
             finally
@@ -253,16 +253,10 @@ namespace MizoTake.VirtualLight
             }
         }
 
-        private static int ShadowResolution(VirtualLightQuality quality)
+        internal static Vector4 BuildShadowSamplingParameters(int resolution)
         {
-            return quality switch
-            {
-                VirtualLightQuality.Low => 256,
-                VirtualLightQuality.Medium => 512,
-                VirtualLightQuality.High => 768,
-                VirtualLightQuality.Ultra => 1024,
-                _ => 512
-            };
+            var inverseResolution = 1f / Mathf.Max(resolution, 1);
+            return new Vector4(inverseResolution, inverseResolution, VirtualLightSystem.ShadowDepthBias, VirtualLightSystem.ShadowNormalBias);
         }
 
         private static int GrowCapacity(int current, int required)

@@ -78,6 +78,62 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [UnityTest]
+        public IEnumerator CameraRender_DirectionalLightsEveryTileWithoutRangeAttenuation()
+        {
+            VirtualLightSystem.ResetForTests();
+            Assert.That(SystemInfo.supportsComputeShaders, Is.True);
+            var cameraObject = new GameObject("Directional Virtual Light Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -4f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 1.5f;
+            var renderTexture = new RenderTexture(64, 64, 24, RenderTextureFormat.ARGB32);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 3.2f;
+            var shader = Shader.Find("MizoTake/Virtual Light/Lit");
+            Assert.That(shader, Is.Not.Null);
+            var material = new Material(shader);
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            receiver.GetComponent<Renderer>().sharedMaterial = material;
+            yield return null;
+            var baseline = RenderCenter(camera, renderTexture);
+            var lightObject = new GameObject("Directional Virtual Light Test");
+            lightObject.transform.position = new Vector3(10000f, -8000f, 6000f);
+            lightObject.transform.rotation = Quaternion.identity;
+            var virtualLight = lightObject.AddComponent<MizoTake.VirtualLight.VirtualLight>();
+            virtualLight.Type = VirtualLightType.Directional;
+            virtualLight.Color = Color.red;
+            virtualLight.Intensity = 2f;
+            virtualLight.Range = 0.01f;
+            yield return null;
+            var forwardFacing = RenderCenter(camera, renderTexture);
+            Assert.That(Shader.GetGlobalInt("_VirtualLightUseTiling"), Is.EqualTo(1), "The test must exercise the compute-tiled path rather than the direct fallback.");
+            var tileSamples = new[] { ReadPixelHdr(renderTexture, 8, 8), ReadPixelHdr(renderTexture, 24, 24), ReadPixelHdr(renderTexture, 40, 40), ReadPixelHdr(renderTexture, 56, 56) };
+            lightObject.transform.rotation = Quaternion.LookRotation(Vector3.back, Vector3.up);
+            yield return null;
+            var reversed = RenderCenter(camera, renderTexture);
+
+            Assert.That(forwardFacing.r, Is.GreaterThan(baseline.r + 0.05f));
+            Assert.That(tileSamples, Has.All.Matches<Color>(sample => sample.r > baseline.r + 0.05f), "Directional light must be selected in every 16x16 tile regardless of its Transform position.");
+            Assert.That(reversed.r, Is.LessThan(forwardFacing.r * 0.2f));
+            Object.Destroy(lightObject);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
         public IEnumerator CameraRender_StandardLightingOptionControlsUrpMainLightContribution()
         {
             VirtualLightSystem.ResetForTests();

@@ -1,6 +1,6 @@
 # Virtual Light
 
-Virtual Light is a Unity 6 / URP package for runtime-managed point, spot, and rectangle virtual lights. It uploads an 80-byte structured GPU record per active light through dynamically sized GPU buffers, performs 16x16 screen-tile selection on compute-capable hardware, falls back to direct structured-buffer evaluation when tiled selection is unavailable, and evaluates direct light through URP's metallic-roughness BRDF. The package does not impose a fixed light-count ceiling; practical capacity depends on platform GPU resource limits, memory, and the frame-time budget.
+Virtual Light is a Unity 6 / URP package for runtime-managed directional, point, spot, and rectangle virtual lights. It uploads an 80-byte structured GPU record per active light through dynamically sized GPU buffers, performs 16x16 screen-tile selection on compute-capable hardware, falls back to direct structured-buffer evaluation when tiled selection is unavailable, and evaluates direct light through URP's metallic-roughness BRDF. The package does not impose a fixed light-count ceiling; practical capacity depends on platform GPU resource limits, memory, and the frame-time budget.
 
 ## Install
 
@@ -17,7 +17,11 @@ This repository hosts the package under `Packages/com.mizotake.virtual-light`, s
 
 The Basic sample contains one static scene with Point, Spot, and Rectangle Area lights. It has no sample C# scripts and does not require UGUI.
 
+Open **Tools > Virtual Light > Settings** to edit the project-wide Virtual Light defaults. The window creates `Assets/Resources/MizoTake/VirtualLight/VirtualLightSystemSettings.asset` on first use and applies Quality, Shadow Depth Bias, Shadow Normal Bias, and Shadow Caster Layers immediately in the Editor and at Player startup. Quality selects 256, 512, 768, or 1024-pixel shadow slices for Low, Medium, High, or Ultra. These settings control the custom Virtual Light shadow path and remain separate from Unity Quality and URP shadow settings.
+
 For Spot lights, **Surface Penumbra Sharpness** controls how strongly the opaque receiver highlight follows the Inner Angle. Zero preserves the standard squared inner-to-outer falloff. One keeps the same Inner/Outer boundaries but concentrates the penumbra with a multiply-only eighth-power profile; beam geometry and shadow projection remain unchanged.
+
+To replace Unity `Light` components, run **Tools > Virtual Light > Convert Light Components in Current Stage** or **Convert Selected Light Components**. The current-stage command covers all loaded scenes in the Main Stage and only the open Prefab while editing a Prefab Stage. The selected command converts only `Light` components attached directly to selected GameObjects; the Light Inspector context menu can convert one component. Directional, Point, Spot, and Rectangle lights preserve their supported type, effective color including color temperature, intensity, enabled state, applicable range, Spot angles, Rectangle size, and shadow-enabled intent on the same GameObject and Transform. Unsupported light types, existing Virtual Light conflicts, immutable objects, and objects with unknown components that require `UnityEngine.Light` are left unchanged with Console warnings. Unity `Light` references and unsupported cookie, baking, culling/rendering-layer, and detailed shadow settings cannot be redirected. Directional, Point, and Rectangle shadows remain unsupported, Spot shadows require `VirtualLightOccluder`, scenes and Prefabs are not saved automatically, and the complete operation supports Editor Undo and Redo.
 
 To convert materials already used by Renderers in open scenes, run **Tools > Virtual Light > Convert URP Lit Materials in Loaded Scenes**. The command finds `Universal Render Pipeline/Lit` materials on active and inactive Renderers, deduplicates shared references, and converts each material in place while preserving every same-named, same-typed shader property, texture scale/offset, local keyword, render queue, instancing flag, double-sided GI flag, and global-illumination flags. Because material assets are shared, the confirmation dialog warns that prefabs and other scenes using the same assets are also affected; Editor Undo is registered for the conversion. Embedded imported materials, Material Variants, and read-only assets are skipped with an actionable Console warning so imported or inherited data is not silently lost.
 
@@ -33,7 +37,7 @@ The package does not modify a renderer asset. GPU upload occurs at `RenderPipeli
 
 ## MVP boundary
 
-This release covers manual Point, Spot, and sampled Rectangle Area lights, handle-safe runtime mutation, dynamically sized GPU upload, tiled selection with direct-evaluation fallback, opaque material lighting, custom Spot shadow maps shared with the beam volume, optional Physics first-hit effects, and editor handles. Point and Rectangle Area shadows, transparent shadow transmission, light fields, temporal accumulation, shared-medium multiple scattering, and generated VPLs remain outside the current scope.
+This release covers manual Directional, Point, Spot, and sampled Rectangle Area lights, handle-safe runtime mutation, dynamically sized GPU upload, tiled selection with direct-evaluation fallback, opaque material lighting, custom Spot shadow maps shared with the beam volume, optional Physics first-hit effects, and editor handles. Directional, Point, and Rectangle Area shadows, transparent shadow transmission, light fields, temporal accumulation, shared-medium multiple scattering, and generated VPLs remain outside the current scope.
 
 ## Development
 

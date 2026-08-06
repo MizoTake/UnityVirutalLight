@@ -7,5 +7,6 @@ namespace MizoTake.VirtualLight
         void Unregister(VirtualLightHandle handle);
         void ClearGeneratedLights();
         void SetQuality(VirtualLightQuality quality);
+        void ApplySettings(VirtualLightSystemSettings settings);
     }
 }

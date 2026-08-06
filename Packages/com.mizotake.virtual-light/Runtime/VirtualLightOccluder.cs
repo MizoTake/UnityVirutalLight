@@ -45,7 +45,7 @@ namespace MizoTake.VirtualLight
                 for (var index = 0; index < ChildRenderers.Count; index++)
                 {
                     var renderer = ChildRenderers[index];
-                    if (renderer == null || renderer.GetComponentInParent<VirtualLightBeamVolume>() != null || !HasOpaqueMaterial(renderer) || !UniqueRenderers.Add(renderer)) continue;
+                    if (renderer == null || (VirtualLightSystem.ShadowCasterLayerMask & 1 << renderer.gameObject.layer) == 0 || renderer.GetComponentInParent<VirtualLightBeamVolume>() != null || !HasOpaqueMaterial(renderer) || !UniqueRenderers.Add(renderer)) continue;
                     destination.Add(renderer);
                 }
             }

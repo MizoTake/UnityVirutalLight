@@ -60,11 +60,22 @@ float3 MizotEvaluateSample(VirtualLightGpu light, float3 samplePosition, float s
 #endif
 }
 
+float3 MizotEvaluateDirectionalLight(VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, half3 normalWS, half3 viewDirectionWS)
+{
+    half3 lightDirection = -SafeNormalize(light.directionType.xyz);
+    half3 lightColor = light.colorIntensity.rgb * light.colorIntensity.w;
+#if defined(_SPECULARHIGHLIGHTS_OFF)
+    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, 1.0, normalWS, viewDirectionWS, clearCoatMask, true);
+#else
+    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, 1.0, normalWS, viewDirectionWS, clearCoatMask, false);
+#endif
+}
+
 float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, float3 positionWS, half3 normalWS, half3 viewDirectionWS)
 {
     uint flags = (uint)round(light.coneShadowFlags.w);
-    if ((flags & 1u) == 0u || (flags & 4u) == 0u || light.positionRadius.w <= 0.0 || light.colorIntensity.w <= 0.0) return 0.0;
     uint lightType = (uint)round(light.directionType.w);
+    if ((flags & 1u) == 0u || (flags & 4u) == 0u || light.colorIntensity.w <= 0.0 || (lightType != 3u && light.positionRadius.w <= 0.0)) return 0.0;
     float3 lightForward = SafeNormalize(light.directionType.xyz);
     if (lightType == 0u) return MizotEvaluateSample(light, light.positionRadius.xyz, light.colorIntensity.w, 1.0, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     if (lightType == 1u)
@@ -77,6 +88,8 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
 #endif
         return MizotEvaluateSample(light, light.positionRadius.xyz, light.colorIntensity.w, spotAttenuation, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     }
+    if (lightType == 3u) return MizotEvaluateDirectionalLight(light, brdfData, clearCoatBrdfData, clearCoatMask, normalWS, viewDirectionWS);
+    if (lightType != 2u) return 0.0;
     uint sampleCount = clamp((uint)round(light.areaSizeParams.z), 1u, 16u);
     bool horizontal = light.areaSizeParams.x >= light.areaSizeParams.y;
     uint gridWidth = sampleCount == 1u ? 1u : sampleCount == 2u ? (horizontal ? 2u : 1u) : sampleCount == 4u ? 2u : sampleCount == 8u ? (horizontal ? 4u : 2u) : 4u;

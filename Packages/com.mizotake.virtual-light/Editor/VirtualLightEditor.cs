@@ -51,8 +51,8 @@ namespace MizoTake.VirtualLight.Editor
             EditorGUILayout.PropertyField(type);
             EditorGUILayout.PropertyField(color);
             EditorGUILayout.PropertyField(intensity);
-            EditorGUILayout.PropertyField(range);
-            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.enumValueIndex == VirtualLightType.Spot)
+            if (type.hasMultipleDifferentValues || (VirtualLightType)type.intValue != VirtualLightType.Directional) EditorGUILayout.PropertyField(range);
+            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.intValue == VirtualLightType.Spot)
             {
                 var minimumAngle = innerAngle.floatValue;
                 var maximumAngle = outerAngle.floatValue;
@@ -63,7 +63,7 @@ namespace MizoTake.VirtualLight.Editor
                 EditorGUILayout.PropertyField(outerAngle);
                 EditorGUILayout.PropertyField(spotPenumbraSharpness, new GUIContent("Surface Penumbra Sharpness"));
             }
-            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.enumValueIndex == VirtualLightType.RectangleArea)
+            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.intValue == VirtualLightType.RectangleArea)
             {
                 EditorGUILayout.PropertyField(areaSize);
                 EditorGUILayout.IntPopup(areaSampleCount, new GUIContent[] { new GUIContent("1"), new GUIContent("2"), new GUIContent("4"), new GUIContent("8"), new GUIContent("16") }, new[] { 1, 2, 4, 8, 16 });
@@ -76,8 +76,8 @@ namespace MizoTake.VirtualLight.Editor
             EditorGUILayout.PropertyField(priority);
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(alwaysShowGizmo);
-            EditorGUILayout.PropertyField(showInfluenceVolume);
-            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.enumValueIndex == VirtualLightType.RectangleArea) EditorGUILayout.PropertyField(showSamplePoints);
+            if (type.hasMultipleDifferentValues || (VirtualLightType)type.intValue != VirtualLightType.Directional) EditorGUILayout.PropertyField(showInfluenceVolume);
+            if (!type.hasMultipleDifferentValues && (VirtualLightType)type.intValue == VirtualLightType.RectangleArea) EditorGUILayout.PropertyField(showSamplePoints);
             serializedObject.ApplyModifiedProperties();
             DrawWarnings();
         }
@@ -86,13 +86,16 @@ namespace MizoTake.VirtualLight.Editor
         {
             var virtualLight = (MizoTake.VirtualLight.VirtualLight)target;
             var transform = virtualLight.transform;
-            EditorGUI.BeginChangeCheck();
-            var newRange = Handles.RadiusHandle(Quaternion.identity, transform.position, virtualLight.Range);
-            if (EditorGUI.EndChangeCheck())
+            if (virtualLight.Type != VirtualLightType.Directional)
             {
-                Undo.RecordObject(virtualLight, "Change Virtual Light Range");
-                virtualLight.Range = newRange;
-                EditorUtility.SetDirty(virtualLight);
+                EditorGUI.BeginChangeCheck();
+                var newRange = Handles.RadiusHandle(Quaternion.identity, transform.position, virtualLight.Range);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Undo.RecordObject(virtualLight, "Change Virtual Light Range");
+                    virtualLight.Range = newRange;
+                    EditorUtility.SetDirty(virtualLight);
+                }
             }
             if (virtualLight.Type == VirtualLightType.RectangleArea) DrawAreaHandle(virtualLight);
             if (virtualLight.Type == VirtualLightType.Spot) DrawSpotHandle(virtualLight);
@@ -139,7 +142,7 @@ namespace MizoTake.VirtualLight.Editor
             }
             var selectedLight = (MizoTake.VirtualLight.VirtualLight)target;
             if (selectedLight.CastShadow && selectedLight.Type == VirtualLightType.Spot) EditorGUILayout.HelpBox("Spot shadow maps are generated from active Virtual Light Occluder hierarchies and shared by opaque PBR lighting and beam volumes.", MessageType.Info);
-            else if (selectedLight.CastShadow) EditorGUILayout.HelpBox("Custom shadow maps currently support Spot Virtual Lights. Point and Rectangle Area shadows remain unsupported.", MessageType.Warning);
+            else if (selectedLight.CastShadow) EditorGUILayout.HelpBox("Custom shadow maps currently support Spot Virtual Lights. Point, Rectangle Area, and Directional shadows remain unsupported.", MessageType.Warning);
         }
     }
 }

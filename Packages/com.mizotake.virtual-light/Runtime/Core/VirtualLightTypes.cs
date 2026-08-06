@@ -8,7 +8,8 @@ namespace MizoTake.VirtualLight
     {
         Point = 0,
         Spot = 1,
-        RectangleArea = 2
+        RectangleArea = 2,
+        Directional = 3
     }
 
     [Flags]
@@ -142,7 +143,7 @@ namespace MizoTake.VirtualLight
             {
                 sanitized.Flags &= ~VirtualLightFlags.TwoSided;
             }
-            if (sanitized.Radius <= 0f)
+            if (sanitized.Type != VirtualLightType.Directional && sanitized.Radius <= 0f)
             {
                 sanitized.Flags &= ~VirtualLightFlags.Enabled;
             }

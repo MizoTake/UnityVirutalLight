@@ -51,6 +51,24 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [Test]
+        public void GpuData_DirectionalPacksDirectionAndTypeWithoutChangingLayout()
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Directional;
+            descriptor.Direction = new Vector3(0.25f, -0.5f, 0.75f).normalized;
+            descriptor.Radius = 0f;
+
+            var gpu = VirtualLightGpu.FromDescriptor(in descriptor);
+
+            Assert.That(gpu.DirectionType.x, Is.EqualTo(descriptor.Direction.x).Within(0.0001f));
+            Assert.That(gpu.DirectionType.y, Is.EqualTo(descriptor.Direction.y).Within(0.0001f));
+            Assert.That(gpu.DirectionType.z, Is.EqualTo(descriptor.Direction.z).Within(0.0001f));
+            Assert.That(gpu.DirectionType.w, Is.EqualTo((float)VirtualLightType.Directional));
+            Assert.That(gpu.PositionRadius.w, Is.Zero);
+            Assert.That(Marshal.SizeOf<VirtualLightGpu>(), Is.EqualTo(80));
+        }
+
+        [Test]
         public void Descriptor_DirectionIncludesParentReflection()
         {
             var parent = new GameObject("Reflected Parent");
@@ -179,6 +197,19 @@ namespace MizoTake.VirtualLight.Tests
             descriptor.AreaSampleCount = requested;
 
             Assert.That(descriptor.Sanitized().AreaSampleCount, Is.EqualTo(expected));
+        }
+
+        [Test]
+        public void Sanitize_DirectionalRemainsEnabledWithZeroRadius()
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Directional;
+            descriptor.Radius = 0f;
+
+            var sanitized = descriptor.Sanitized();
+
+            Assert.That((sanitized.Flags & VirtualLightFlags.Enabled) != 0, Is.True);
+            Assert.That(sanitized.Radius, Is.Zero);
         }
 
         [Test]
