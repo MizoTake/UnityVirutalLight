@@ -355,9 +355,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!114 &89519988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -371,6 +374,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 0.08, g: 0.72, b: 1, a: 1}
   intensity: 11.16
   range: 11
@@ -520,11 +524,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  shape: 0
   color: {r: 1, g: 0.58, b: 0.38, a: 1}
   intensity: 0.65
   range: 14
   innerAngle: 25
   outerAngle: 40
+  spotPenumbraSharpness: 0
   areaSize: {x: 4, y: 2.2}
   areaSampleCount: 16
   twoSided: 0
@@ -980,9 +986,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!114 &253541221
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -996,6 +1005,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 1, g: 0.72, b: 0.34, a: 1}
   intensity: 11.16
   range: 11
@@ -1366,11 +1376,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  shape: 0
   color: {r: 0.22, g: 0.48, b: 1, a: 1}
   intensity: 0.5
   range: 14
   innerAngle: 25
   outerAngle: 40
+  spotPenumbraSharpness: 0
   areaSize: {x: 3.5, y: 2}
   areaSampleCount: 16
   twoSided: 0
@@ -3831,9 +3843,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!114 &1254413400
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3847,6 +3862,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 1, g: 0.72, b: 0.34, a: 1}
   intensity: 11.16
   range: 11
@@ -4915,11 +4931,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  shape: 0
   color: {r: 0.68, g: 0.78, b: 1, a: 1}
   intensity: 0.22
   range: 10
   innerAngle: 25
   outerAngle: 40
+  spotPenumbraSharpness: 0
   areaSize: {x: 5.5, y: 2.5}
   areaSampleCount: 16
   twoSided: 0
@@ -5478,9 +5496,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!114 &1775170462
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5494,6 +5515,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 1, g: 0.08, b: 0.42, a: 1}
   intensity: 11.16
   range: 11
@@ -6190,6 +6212,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 0.08, g: 0.72, b: 1, a: 1}
   intensity: 11.16
   range: 11
@@ -6227,9 +6250,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!4 &1945885810
 Transform:
   m_ObjectHideFlags: 0
@@ -6336,9 +6362,12 @@ MonoBehaviour:
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
+  fitImpactToSpotCone: 1
   truncateVisualAtFirstHit: 0
   probeRadius: 0
   surfaceOffset: 0.01
+  maximumImpactAspectRatio: 8
+  maximumRefreshRate: 60
 --- !u!114 &1981881838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6352,6 +6381,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 1, g: 0.08, b: 0.42, a: 1}
   intensity: 11.16
   range: 11

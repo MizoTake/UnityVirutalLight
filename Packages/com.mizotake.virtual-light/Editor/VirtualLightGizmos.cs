@@ -15,7 +15,8 @@ namespace MizoTake.VirtualLight.Editor
             Gizmos.color = color;
             var transform = virtualLight.transform;
             var iconSize = HandleUtility.GetHandleSize(transform.position) * 0.15f;
-            Handles.Label(transform.position + Vector3.up * iconSize, $"VL {virtualLight.Type}");
+            var shapeLabel = VirtualLightMath.SupportsShape(virtualLight.Type) ? $" {virtualLight.Shape}" : string.Empty;
+            Handles.Label(transform.position + Vector3.up * iconSize, $"VL {virtualLight.Type}{shapeLabel}");
             switch (virtualLight.Type)
             {
                 case VirtualLightType.Point:
@@ -35,11 +36,18 @@ namespace MizoTake.VirtualLight.Editor
 
         private static void DrawPoint(MizoTake.VirtualLight.VirtualLight virtualLight, float iconSize)
         {
-            var position = virtualLight.transform.position;
+            var transform = virtualLight.transform;
+            var position = transform.position;
             foreach (var direction in new[] { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back }) Handles.DrawLine(position + direction * iconSize * 0.3f, position + direction * iconSize);
-            if (virtualLight.ShowInfluenceVolume) Handles.DrawWireDisc(position, Vector3.up, virtualLight.Range);
-            if (virtualLight.ShowInfluenceVolume) Handles.DrawWireDisc(position, Vector3.right, virtualLight.Range);
-            if (virtualLight.ShowInfluenceVolume) Handles.DrawWireDisc(position, Vector3.forward, virtualLight.Range);
+            if (!virtualLight.ShowInfluenceVolume) return;
+            if (virtualLight.Shape == VirtualLightShape.Rectangle)
+            {
+                DrawBox(position, transform.right, transform.up, transform.forward, virtualLight.Range);
+                return;
+            }
+            Handles.DrawWireDisc(position, Vector3.up, virtualLight.Range);
+            Handles.DrawWireDisc(position, Vector3.right, virtualLight.Range);
+            Handles.DrawWireDisc(position, Vector3.forward, virtualLight.Range);
         }
 
         private static void DrawSpot(MizoTake.VirtualLight.VirtualLight virtualLight, float iconSize)
@@ -47,6 +55,12 @@ namespace MizoTake.VirtualLight.Editor
             var transform = virtualLight.transform;
             Handles.ArrowHandleCap(0, transform.position, transform.rotation, iconSize, EventType.Repaint);
             if (!virtualLight.ShowInfluenceVolume) return;
+            if (virtualLight.Shape == VirtualLightShape.Rectangle)
+            {
+                DrawPyramid(transform.position, transform.forward, transform.right, transform.up, virtualLight.Range, virtualLight.OuterAngle);
+                DrawPyramid(transform.position, transform.forward, transform.right, transform.up, virtualLight.Range, virtualLight.InnerAngle);
+                return;
+            }
             DrawCone(transform.position, transform.forward, transform.right, transform.up, virtualLight.Range, virtualLight.OuterAngle);
             DrawCone(transform.position, transform.forward, transform.right, transform.up, virtualLight.Range, virtualLight.InnerAngle);
         }
@@ -104,6 +118,23 @@ namespace MizoTake.VirtualLight.Editor
             Handles.DrawLine(origin, center - right * radius);
             Handles.DrawLine(origin, center + up * radius);
             Handles.DrawLine(origin, center - up * radius);
+        }
+
+        private static void DrawPyramid(Vector3 origin, Vector3 forward, Vector3 right, Vector3 up, float range, float angle)
+        {
+            var halfExtent = Mathf.Tan(angle * Mathf.Deg2Rad * 0.5f) * range;
+            var center = origin + forward * range;
+            var corners = new[] { center - right * halfExtent - up * halfExtent, center + right * halfExtent - up * halfExtent, center + right * halfExtent + up * halfExtent, center - right * halfExtent + up * halfExtent };
+            Handles.DrawAAPolyLine(2f, corners[0], corners[1], corners[2], corners[3], corners[0]);
+            foreach (var corner in corners) Handles.DrawLine(origin, corner);
+        }
+
+        private static void DrawBox(Vector3 center, Vector3 right, Vector3 up, Vector3 forward, float halfExtent)
+        {
+            var corners = new[] { center - right * halfExtent - up * halfExtent - forward * halfExtent, center + right * halfExtent - up * halfExtent - forward * halfExtent, center + right * halfExtent + up * halfExtent - forward * halfExtent, center - right * halfExtent + up * halfExtent - forward * halfExtent, center - right * halfExtent - up * halfExtent + forward * halfExtent, center + right * halfExtent - up * halfExtent + forward * halfExtent, center + right * halfExtent + up * halfExtent + forward * halfExtent, center - right * halfExtent + up * halfExtent + forward * halfExtent };
+            Handles.DrawAAPolyLine(2f, corners[0], corners[1], corners[2], corners[3], corners[0]);
+            Handles.DrawAAPolyLine(2f, corners[4], corners[5], corners[6], corners[7], corners[4]);
+            for (var index = 0; index < 4; index++) Handles.DrawLine(corners[index], corners[index + 4]);
         }
 
         private static Color NormalizeColor(Color source, float alpha)

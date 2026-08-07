@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+- Added a Type-independent Circle/Rectangle shape for Point and Spot Virtual Lights. Rectangle Point uses a Transform-aligned box range, Rectangle Spot uses a Transform-aligned square-pyramid cone and rolled shadow projection, tiled culling covers box corners, and Unity Pyramid lights convert to Spot + Rectangle while non-equivalent Box Spot lights remain unchanged.
+- Reorganized the script-free UPM sample into a labeled six-station core feature matrix covering Directional, Circle/Rectangle Point, Circle/Rectangle Spot, Rectangle Area, rolled boundary guides, isolated receiver materials, and links to specialized Advanced/benchmark examples.
+- Updated the repository-only Feature Lab to switch its Point and Spot between Circle and Rectangle at runtime, apply a 30-degree Rectangle roll, restore the Spot target wiring, report the active Shape in its overlay, and keep beam-backed Arena Spots explicitly on Circle.
 - Added a project-wide Virtual Light System Settings window for persisted shadow quality, depth bias, normal bias, and caster-layer defaults shared by Editor rendering and Player startup.
 - Added Directional Virtual Lights with position- and range-independent direct lighting, full-screen tile selection, forward-direction editor gizmos, and Unity Directional Light conversion. Custom Directional shadows remain unsupported.
 - Added a per-material **Receive Standard Lighting** option to the Virtual Light Lit shader so URP main/additional lights, shadows, baked lighting, reflection probes, ambient lighting, and SSAO can be included or excluded independently of Virtual Lights and emission.

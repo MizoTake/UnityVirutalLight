@@ -1,7 +1,31 @@
-# Basic Virtual Lights
+# Virtual Light Core Feature Matrix
 
-Open `Scenes/VirtualLightBasicSample.unity` to compare one Point, one Spot, and one Rectangle Area Virtual Light.
+Open `Scenes/VirtualLightBasicSample.unity` for a script-free overview of the currently supported core light combinations.
 
-The sample is intentionally static and contains no sample C# scripts, UGUI, beam volume, custom shadows, post-processing, or runtime animation. Each light illuminates a matching receiver using `MizoTake/Virtual Light/Lit`.
+## Stations
 
-Use this scene to confirm that the package imports and renders correctly. For PBR material comparisons, Spot shadow/occlusion, beam raymarching, multiple moving heads, and performance guidance, open the repository's `Assets/VirtualLightExamples/Advanced` examples.
+| Station | Configuration | What it demonstrates |
+| --- | --- | --- |
+| Directional | Directional | Global contribution that does not depend on position or Range. |
+| Circle Point | Point + Circle | The existing spherical influence range. |
+| Rectangle Point | Point + Rectangle | A Transform-aligned box range. The orange square guide is rolled 30 degrees. |
+| Circle Spot | Spot + Circle | The existing circular cone with Inner/Outer Angle. |
+| Rectangle Spot | Spot + Rectangle | A square-pyramid cone using the same angle on both axes. The blue square guide is rolled 30 degrees. |
+| Rectangle Area | Rectangle Area, 16 samples | A sampled emitting surface; this is a light Type and is separate from Point/Spot Shape. |
+
+Point and Spot pairs use matching colors and comparable parameters so the Shape difference is easy to identify. The colored circle/square meshes are explanatory boundary guides. Select each `VirtualLight` GameObject in Scene view to inspect the package's actual influence Gizmo and serialized parameters.
+
+All six Virtual Lights are active in one scene, so the low-intensity Directional station provides a small shared baseline and adjacent finite lights can overlap near station edges. Use this scene as a feature/layout overview rather than an isolated photometric measurement.
+
+The receiver and environment materials use `MizoTake/Virtual Light/Lit` with **Receive Standard Lighting** disabled. This isolates Virtual Light contribution from URP main/additional lights, ambient lighting, reflection probes, and baked lighting. The scene intentionally contains no Unity `Light`, sample C# script, UGUI, post-processing, beam volume, or custom shadow setup.
+
+## Where to inspect advanced features
+
+The repository development project keeps specialized examples outside the distributable UPM sample:
+
+- `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity`: runtime mutation, PBR response, Spot shadow, beam volume, first-hit occlusion, and impact footprint workflows.
+- `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightAreaDirectionSample.unity`: Rectangle Area forward/back-face and Two Sided comparison.
+- `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightArenaSample.unity`: multiple moving Circle Spot beams and dynamically allocated shadow slices.
+- `Assets/VirtualLightExamples/PerformanceBenchmark`: tiled/direct evaluation, light-count scaling, shadow cost, and performance reports.
+
+Rectangle Spot direct lighting and custom shadow projection can be square, but the optional beam and impact visuals remain circular. Directional, Point, and Rectangle Area shadows are not currently supported.

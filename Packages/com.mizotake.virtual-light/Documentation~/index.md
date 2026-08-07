@@ -11,7 +11,7 @@ Virtual Light implements the first URP MVP described by the repository's virtual
 
 ## Component workflow
 
-Add `VirtualLight` to a GameObject and select Directional, Point, Spot, or Rectangle Area. Position comes from `transform.position` for finite lights. Directional, Spot, and Area use `transform.forward` as the ray-travel or emission direction; Area orientation also follows Transform roll. Directional lighting is independent of Transform position and Range. Finite-light Range and Area Size are explicit and ignore Transform scale.
+Add `VirtualLight` to a GameObject and select Directional, Point, Spot, or Rectangle Area. Point and Spot expose a separate Shape selection: Circle keeps the spherical/circular-cone behavior, Rectangle creates a Transform-aligned box for Point or square pyramid for Spot. Rectangle Point interprets Range as the box half-extent; Rectangle Spot applies the same Inner/Outer angle on both axes. Position comes from `transform.position` for finite lights. Directional, Spot, Rectangle Point, and Area use `transform.forward` for direction or orientation, and rectangular shapes follow Transform roll. Directional lighting is independent of Transform position and Range. Finite-light Range and Area Size are explicit and ignore Transform scale.
 
 The Inspector clamps negative intensity, invalid radius, cone angle order, Area size, and Area sample count. A negative Transform scale is shown as unsupported.
 `Affect Opaque` can be disabled in the Inspector when a Virtual Light should remain registered for custom shader consumers without contributing to the included opaque receiver.
@@ -23,6 +23,8 @@ var system = VirtualLightSystem.Current;
 var descriptor = VirtualLightDescriptor.Default;
 descriptor.Position = transform.position;
 descriptor.LinearColor = Color.cyan.linear;
+descriptor.Type = VirtualLightType.Spot;
+descriptor.Shape = VirtualLightShape.Rectangle;
 var handle = system.Register(in descriptor);
 
 descriptor.Position += Vector3.right;
@@ -36,9 +38,9 @@ Handles contain an ID and generation. Updating or unregistering a stale handle h
 
 Spot lights can use `VirtualLightBeamOcclusion` with Collider hierarchies marked by `VirtualLightOccluder`. The nearest accepted Physics hit can drive an impact marker and optional legacy beam truncation, but it does not clip PBR contribution with a single plane. See [Spot beam occlusion](beam-occlusion.md) for setup and limits.
 
-The optional Beam shader provides a depth-aware participating-media approximation with a finite source aperture, an analytic camera-ray/frustum interval, stable stratified sampling, a Gaussian high-energy core inside a soft outer envelope, and a normalized forward/isotropic phase mixture. The repository's advanced Arena example demonstrates six independently moving beams, HDR core-to-halo presentation, and accumulated PBR influence. See [Arena beam presentation](arena-beams.md).
+The optional Beam shader provides a depth-aware participating-media approximation with a finite source aperture, an analytic camera-ray/frustum interval, stable stratified sampling, a Gaussian high-energy core inside a soft outer envelope, and a normalized forward/isotropic phase mixture. Beam and impact visuals currently remain circular when a Spot uses Rectangle for direct lighting. The repository's advanced Arena example demonstrates six independently moving beams, HDR core-to-halo presentation, and accumulated PBR influence. See [Arena beam presentation](arena-beams.md).
 
-The package Basic sample is a static Point, Spot, and Rectangle Area comparison with no sample C# scripts or UGUI dependency. Advanced repository examples use a built-in immediate-mode status overlay.
+The package **Virtual Light Core Feature Matrix** sample is a static, labeled comparison of Directional, Circle/Rectangle Point, Circle/Rectangle Spot, and Rectangle Area. It uses no sample C# scripts or UGUI dependency, and its receivers disable standard URP lighting so Virtual Light behavior remains isolated. Repository-only Advanced examples cover runtime animation, PBR inputs, custom Spot shadows, beam/impact effects, Rectangle Area directionality, multi-light presentation, and performance measurement.
 
 ## Quality and selection
 
@@ -50,7 +52,7 @@ Use **Tools > Virtual Light > Settings** to create and edit the project default 
 
 `MizoTake/Virtual Light/Lit` is a forward URP receiver shader with URP Lit-compatible material inputs and opaque, alpha-clipped, or transparent render states. Its **Receive Standard Lighting** material option controls whether URP main/additional lights, shadows, baked lighting, reflection probes, ambient lighting, and SSAO are evaluated in addition to Virtual Lights. Custom URP shaders can include `Runtime/Shaders/VirtualLight.hlsl` and call `MizotEvaluateVirtualLights`. Shader Graph users can call `VirtualLight_float` as a Custom Function.
 
-The receiver shader uses URP's metallic-roughness BRDF implementation and supports URP Lit's metallic/specular workflow, normal, height, occlusion, emission, detail, surface, culling, and render-state inputs plus optional clear coat. Use **Tools > Virtual Light > Convert URP Lit Materials in Loaded Scenes** to convert deduplicated `Universal Render Pipeline/Lit` materials used by active or inactive Renderers while preserving their compatible properties and textures. Directional lights use constant attenuation across every screen tile, Point and Spot lights use windowed inverse-square attenuation, and Rectangle Area lights use centered stratified samples weighted by represented emitter area. Shadow-enabled Spots multiply their own BRDF contribution by visibility from the same custom shadow slice sampled by the beam volume. See [PBR lighting model](pbr-model.md) for the input channels, intensity semantics, equations, and current area-light limits.
+The receiver shader uses URP's metallic-roughness BRDF implementation and supports URP Lit's metallic/specular workflow, normal, height, occlusion, emission, detail, surface, culling, and render-state inputs plus optional clear coat. Use **Tools > Virtual Light > Convert URP Lit Materials in Loaded Scenes** to convert deduplicated `Universal Render Pipeline/Lit` materials used by active or inactive Renderers while preserving their compatible properties and textures. Directional lights use constant attenuation across every screen tile, Point and Spot lights use windowed inverse-square attenuation with a Circle or Rectangle boundary, and Rectangle Area lights use centered stratified samples weighted by represented emitter area. Shadow-enabled Spots multiply their own BRDF contribution by visibility from the same custom shadow slice sampled by the beam volume. See [PBR lighting model](pbr-model.md) for the input channels, intensity semantics, equations, and current area-light limits.
 
 ## Known scope limits
 

@@ -6,8 +6,8 @@ namespace MizoTake.VirtualLight.Samples
     public sealed class VirtualLightSampleOverlay : MonoBehaviour
     {
         [SerializeField] private string title = "VIRTUAL LIGHT LAB";
-        [SerializeField] private string subtitle = "POINT   /   SPOT   /   RECTANGLE AREA";
-        [SerializeField] private string status = "LIVE GPU TILED LIGHTING  -  ANIMATED RUNTIME UPDATE";
+        [SerializeField] private string subtitle = "POINT + SPOT SHAPE  /  SHADOW + BEAM  /  RECTANGLE AREA";
+        [SerializeField] private string status = "RUNTIME SHAPE  -  POINT + SPOT / CIRCLE";
         [SerializeField] private Color statusColor = new Color(0.52f, 0.58f, 0.68f);
         [SerializeField] private bool showBeamStatus;
         [SerializeField] private string beamTitle = "BEAM VOLUME / FIRST-HIT OCCLUSION";

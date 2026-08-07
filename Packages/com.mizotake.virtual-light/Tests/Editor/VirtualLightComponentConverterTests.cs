@@ -59,6 +59,7 @@ namespace MizoTake.VirtualLight.Tests
                 Assert.That(converted, Is.Not.Null);
                 Assert.That(converted.gameObject, Is.SameAs(gameObject));
                 Assert.That(converted.Type, Is.EqualTo(VirtualLightType.Point));
+                Assert.That(converted.Shape, Is.EqualTo(VirtualLightShape.Circle));
                 AssertColor(converted.Color, new Color(0.2f, 0.4f, 0.8f, 1f));
                 Assert.That(converted.Intensity, Is.EqualTo(3.75f));
                 Assert.That(converted.Range, Is.EqualTo(12.5f));
@@ -87,9 +88,60 @@ namespace MizoTake.VirtualLight.Tests
 
                 Assert.That(converted, Is.Not.Null);
                 Assert.That(converted.Type, Is.EqualTo(VirtualLightType.Spot));
+                Assert.That(converted.Shape, Is.EqualTo(VirtualLightShape.Circle));
                 Assert.That(converted.InnerAngle, Is.EqualTo(18f));
                 Assert.That(converted.OuterAngle, Is.EqualTo(47f));
                 Assert.That(converted.enabled, Is.False);
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ConvertLight_MapsPyramidSpotToRectangleShape()
+        {
+            var gameObject = new GameObject("Pyramid Spot Light");
+            var source = gameObject.AddComponent<Light>();
+            try
+            {
+                source.type = LightType.Spot;
+                SetPyramidShape(source);
+                source.range = 8f;
+                source.innerSpotAngle = 20f;
+                source.spotAngle = 50f;
+
+                var converted = VirtualLightComponentConverter.ConvertLight(source, false);
+
+                Assert.That(converted, Is.Not.Null);
+                Assert.That(converted.Type, Is.EqualTo(VirtualLightType.Spot));
+                Assert.That(converted.Shape, Is.EqualTo(VirtualLightShape.Rectangle));
+                Assert.That(converted.Range, Is.EqualTo(8f));
+                Assert.That(converted.InnerAngle, Is.EqualTo(20f));
+                Assert.That(converted.OuterAngle, Is.EqualTo(50f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ConvertLight_LeavesBoxSpotUnchanged()
+        {
+            var gameObject = new GameObject("Box Spot Light");
+            var source = gameObject.AddComponent<Light>();
+            try
+            {
+                source.type = LightType.Spot;
+                SetBoxShape(source);
+
+                var converted = VirtualLightComponentConverter.ConvertLight(source, false);
+
+                Assert.That(converted, Is.Null);
+                Assert.That(gameObject.GetComponent<Light>(), Is.SameAs(source));
+                Assert.That(gameObject.GetComponent<MizoTake.VirtualLight.VirtualLight>(), Is.Null);
             }
             finally
             {
@@ -265,6 +317,12 @@ namespace MizoTake.VirtualLight.Tests
                 Object.DestroyImmediate(gameObject);
             }
         }
+
+#pragma warning disable 618
+        private static void SetPyramidShape(Light light) => light.shape = LightShape.Pyramid;
+
+        private static void SetBoxShape(Light light) => light.shape = LightShape.Box;
+#pragma warning restore 618
 
         [Test]
         public void ConvertLight_LeavesSourceWhenVirtualLightAlreadyExists()

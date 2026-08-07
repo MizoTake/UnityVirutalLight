@@ -1,9 +1,12 @@
+using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace MizoTake.VirtualLight.Tests
 {
@@ -36,7 +39,9 @@ namespace MizoTake.VirtualLight.Tests
         {
             var spotDescriptor = VirtualLightDescriptor.Default;
             spotDescriptor.Type = VirtualLightType.Spot;
+            spotDescriptor.Shape = VirtualLightShape.Rectangle;
             spotDescriptor.SpotPenumbraSharpness = 0.75f;
+            spotDescriptor.AreaRotation = 30f;
             var areaDescriptor = VirtualLightDescriptor.Default;
             areaDescriptor.Type = VirtualLightType.RectangleArea;
             areaDescriptor.AreaSize = new Vector2(4f, 2f);
@@ -46,8 +51,26 @@ namespace MizoTake.VirtualLight.Tests
             var areaGpu = VirtualLightGpu.FromDescriptor(in areaDescriptor);
 
             Assert.That(spotGpu.AreaSizeParams.x, Is.EqualTo(0.75f));
+            Assert.That(spotGpu.AreaSizeParams.y, Is.EqualTo((float)VirtualLightShape.Rectangle));
+            Assert.That(spotGpu.AreaSizeParams.w, Is.EqualTo(30f * Mathf.Deg2Rad).Within(0.0001f));
             Assert.That(areaGpu.AreaSizeParams.x, Is.EqualTo(4f));
             Assert.That(areaGpu.AreaSizeParams.y, Is.EqualTo(2f));
+        }
+
+        [Test]
+        public void GpuData_PointPacksShapeAndRotationWithoutChangingLayout()
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Point;
+            descriptor.Shape = VirtualLightShape.Rectangle;
+            descriptor.AreaRotation = -45f;
+
+            var gpu = VirtualLightGpu.FromDescriptor(in descriptor);
+
+            Assert.That(gpu.AreaSizeParams.x, Is.Zero);
+            Assert.That(gpu.AreaSizeParams.y, Is.EqualTo((float)VirtualLightShape.Rectangle));
+            Assert.That(gpu.AreaSizeParams.w, Is.EqualTo(-45f * Mathf.Deg2Rad).Within(0.0001f));
+            Assert.That(Marshal.SizeOf<VirtualLightGpu>(), Is.EqualTo(80));
         }
 
         [Test]
@@ -151,6 +174,27 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [Test]
+        public void Inspector_ExposesPunctualShape()
+        {
+            var gameObject = new GameObject("Virtual Light");
+            UnityEditor.Editor editor = null;
+            try
+            {
+                var virtualLight = gameObject.AddComponent<VirtualLight>();
+                editor = UnityEditor.Editor.CreateEditor(virtualLight);
+                var field = editor.GetType().GetField("shape", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(field, Is.Not.Null);
+                Assert.That(field.GetValue(editor), Is.Not.Null);
+            }
+            finally
+            {
+                if (editor != null) Object.DestroyImmediate(editor);
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
         public void Sanitize_RepairsInvalidValuesAndConeOrder()
         {
             var descriptor = new VirtualLightDescriptor
@@ -166,6 +210,7 @@ namespace MizoTake.VirtualLight.Tests
                 AreaSize = new Vector2(0f, float.NaN),
                 AreaSampleCount = 3,
                 Type = VirtualLightType.RectangleArea,
+                Shape = (VirtualLightShape)999,
                 Flags = VirtualLightFlags.Enabled | VirtualLightFlags.AffectOpaque
             };
 
@@ -182,6 +227,36 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(sanitized.SpotPenumbraSharpness, Is.EqualTo(1f));
             Assert.That(sanitized.AreaSize, Is.EqualTo(new Vector2(0.01f, 0.01f)));
             Assert.That(sanitized.AreaSampleCount, Is.EqualTo(4));
+            Assert.That(sanitized.Shape, Is.EqualTo(VirtualLightShape.Circle));
+        }
+
+        [Test]
+        public void DescriptorEquality_DetectsShapeChanges()
+        {
+            var circle = VirtualLightDescriptor.Default;
+            var rectangle = circle;
+            rectangle.Shape = VirtualLightShape.Rectangle;
+
+            Assert.That(circle.Equals(rectangle), Is.False);
+        }
+
+        [Test]
+        public void Component_DefaultsToCircleAndSynchronizesRectangleShape()
+        {
+            var gameObject = new GameObject("Virtual Light");
+            try
+            {
+                var virtualLight = gameObject.AddComponent<VirtualLight>();
+
+                Assert.That(virtualLight.Shape, Is.EqualTo(VirtualLightShape.Circle));
+                virtualLight.Shape = VirtualLightShape.Rectangle;
+
+                Assert.That(virtualLight.Descriptor.Shape, Is.EqualTo(VirtualLightShape.Rectangle));
+            }
+            finally
+            {
+                Object.DestroyImmediate(gameObject);
+            }
         }
 
         [TestCase(1, 1)]
@@ -285,6 +360,35 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [Test]
+        public void PackageSampleScene_DeclaresCurrentCoreFeatureMatrix()
+        {
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(VirtualLightDataTests).Assembly);
+            Assert.That(packageInfo, Is.Not.Null);
+            var scenePath = Path.Combine(packageInfo.resolvedPath, "Samples~", "Basic", "Scenes", "VirtualLightBasicSample.unity");
+            var serializedScene = File.ReadAllText(scenePath);
+
+            AssertSampleLight(serializedScene, "Directional Virtual Light", VirtualLightType.Directional, VirtualLightShape.Circle);
+            AssertSampleLight(serializedScene, "Circle Point Virtual Light", VirtualLightType.Point, VirtualLightShape.Circle);
+            AssertSampleLight(serializedScene, "Rectangle Point Virtual Light", VirtualLightType.Point, VirtualLightShape.Rectangle);
+            AssertSampleLight(serializedScene, "Circle Spot Virtual Light", VirtualLightType.Spot, VirtualLightShape.Circle);
+            AssertSampleLight(serializedScene, "Rectangle Spot Virtual Light", VirtualLightType.Spot, VirtualLightShape.Rectangle);
+            AssertSampleLight(serializedScene, "Rectangle Area Virtual Light", VirtualLightType.RectangleArea, VirtualLightShape.Circle);
+            StringAssert.Contains("areaSampleCount: 16", serializedScene);
+            StringAssert.Contains("spotPenumbraSharpness: 1", serializedScene);
+            StringAssert.Contains("orthographic size: 6.6", serializedScene);
+        }
+
+        [Test]
+        public void PackageSampleReadme_MapsCoreAndAdvancedFeatureCoverage()
+        {
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(VirtualLightDataTests).Assembly);
+            Assert.That(packageInfo, Is.Not.Null);
+            var readme = File.ReadAllText(Path.Combine(packageInfo.resolvedPath, "Samples~", "Basic", "README.md"));
+
+            foreach (var featureName in new[] { "Directional", "Circle Point", "Rectangle Point", "Circle Spot", "Rectangle Spot", "Rectangle Area", "Spot shadow", "beam volume", "performance" }) StringAssert.Contains(featureName, readme);
+        }
+
+        [Test]
         public void PackageSample_DoesNotRequireUgui()
         {
             var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(VirtualLightDataTests).Assembly);
@@ -303,6 +407,18 @@ namespace MizoTake.VirtualLight.Tests
         public void RuntimeAssembly_DoesNotContainUrpSpotLightBridge()
         {
             Assert.That(typeof(VirtualLightSystem).Assembly.GetType("MizoTake.VirtualLight.VirtualLightUrpSpotBridge", false), Is.Null);
+        }
+
+        private static void AssertSampleLight(string serializedScene, string objectName, VirtualLightType expectedType, VirtualLightShape expectedShape)
+        {
+            var blocks = serializedScene.Split(new[] { "--- !u!" }, StringSplitOptions.RemoveEmptyEntries);
+            var gameObjectBlock = blocks.Single(block => block.StartsWith("1 &", StringComparison.Ordinal) && block.Contains($"m_Name: {objectName}"));
+            var firstLine = gameObjectBlock.Substring(0, gameObjectBlock.IndexOf('\n'));
+            var gameObjectId = firstLine.Substring(firstLine.IndexOf('&') + 1).Trim();
+            var componentBlock = blocks.Single(block => block.StartsWith("114 &", StringComparison.Ordinal) && block.Contains($"m_GameObject: {{fileID: {gameObjectId}}}") && block.Contains("guid: 55b5d5760fafc6749acd7c03b801980b"));
+
+            StringAssert.Contains($"type: {(int)expectedType}", componentBlock, $"{objectName} has the wrong Type.");
+            StringAssert.Contains($"shape: {(int)expectedShape}", componentBlock, $"{objectName} has the wrong Shape.");
         }
 
         [TestCase(1, 4f, 2f, 1, 1)]

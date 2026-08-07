@@ -1,6 +1,6 @@
 # Virtual Light
 
-Virtual Lightは、Unity標準の`Light`とは独立して動作する、Unity 6 / Universal Render Pipeline（URP）向けのGPU駆動ライトパッケージです。Directional、Point、Spot、Rectangle Areaの仮想ライトをコンポーネントまたはRuntime APIから登録し、付属の受光シェーダーやカスタムシェーダーで評価できます。
+Virtual Lightは、Unity標準の`Light`とは独立して動作する、Unity 6 / Universal Render Pipeline（URP）向けのGPU駆動ライトパッケージです。Directional、Circle/Rectangle Point、Circle/Rectangle Spot、Rectangle Areaの仮想ライトをコンポーネントまたはRuntime APIから登録し、付属の受光シェーダーやカスタムシェーダーで評価できます。
 
 > [!IMPORTANT]
 > 現在のpackage manifestは`0.1.0`です。`master`には[CHANGELOG](Packages/com.mizotake.virtual-light/CHANGELOG.md)の`Unreleased`に記載された開発中の変更が含まれており、固定リリースタグはまだありません。
@@ -43,7 +43,7 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 
 ### ライトとRuntime API
 
-- Directional、Point、Spot、Rectangle Areaの4種類
+- Directional、Point、Spot、Rectangle Areaの4種類と、Point / Spotから独立して選べるCircle / Rectangle Shape
 - `VirtualLight`コンポーネントによる手動配置とInspector編集
 - **Tools > Virtual Light**から、現在の編集Stageまたは選択中のUnity標準`Light`をパラメーター付きで`VirtualLight`へ置換
 - `VirtualLightSystem.Current` / `IVirtualLightSystem`による登録、更新、解除
@@ -70,10 +70,10 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 
 ## クイックスタート
 
-1. Package Managerで**Basic Virtual Lights** sampleをImportします。
+1. Package Managerで**Virtual Light Core Feature Matrix** sampleをImportします。
 2. GameObjectへ**Add Component > Rendering > Virtual Light**から`VirtualLight`を追加します。
 3. 受光するRendererのマテリアルに`MizoTake/Virtual Light/Lit`を使用します。既存のURP Litマテリアルは変換ツールを利用できます。
-4. Directional、Point、Spot、Rectangle Areaを切り替え、色、強度、適用可能な範囲、cone angle、area sizeなどを調整します。Directionalは位置と範囲に依存せず、`transform.forward`を光線の進行方向として使用します。
+4. Directional、Point、Spot、Rectangle Areaを切り替えます。Point / SpotではTypeとは別にCircle / Rectangle Shapeを選び、色、強度、範囲、cone angle、area sizeなどを調整します。Directionalは位置と範囲に依存せず、`transform.forward`を光線の進行方向として使用します。
 5. 独自システムから動的に生成する場合は、[`Documentation~/index.md`](Packages/com.mizotake.virtual-light/Documentation~/index.md)のRuntime API例を参照してください。
 
 標準のURP Litマテリアルは、そのままではVirtual Lightを受光しません。付属シェーダーへの変更、変換ツール、またはHLSL組み込みのいずれかが必要です。
@@ -82,16 +82,18 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 
 **Tools > Virtual Light > Convert Light Components in Current Stage**は、通常のScene編集では読み込まれているScene内、Prefab StageではそのPrefab内の`Light`を置換します。**Convert Selected Light Components**は、選択GameObject自身に付いている`Light`だけを置換します。Light Inspectorのcontext menuから1件ずつ実行することもできます。
 
-Directional、Point、Spot、Rectangleのtype、color、color temperature、intensity、enabled、適用可能なrange、Spot angle、Rectangle size、shadow有効状態を対応する値へ引き継ぎます。Disc、Pyramid、Box、Tube、既存`VirtualLight`と競合するもの、未知の`Light`必須componentを持つものは元の`Light`を残してスキップします。`Light`型の参照、Cookie、bake設定、culling／rendering layer、shadow詳細は引き継げません。Directional／Point／Rectangle shadowは未対応で、Spot shadowには`VirtualLightOccluder`が必要です。変換はUndo可能ですが、SceneやPrefabは自動保存しません。
+Directional、Point、cone / pyramid Spot、Rectangleのtype、shape、color、color temperature、intensity、enabled、適用可能なrange、Spot angle、Rectangle size、shadow有効状態を対応する値へ引き継ぎます。PyramidはSpot + Rectangleへ変換します。Disc、Box、Tube、既存`VirtualLight`と競合するもの、未知の`Light`必須componentを持つものは元の`Light`を残してスキップします。`Light`型の参照、Cookie、bake設定、culling／rendering layer、shadow詳細は引き継げません。Directional／Point／Rectangle shadowは未対応で、Spot shadowには`VirtualLightOccluder`が必要です。変換はUndo可能ですが、SceneやPrefabは自動保存しません。
 
 ## サンプル
 
 | 種類 | 場所 | 内容 |
 | --- | --- | --- |
-| Basic | Package Managerの**Basic Virtual Lights** | Point、Spot、Rectangle Areaを比較するscript-freeの静的scene。UPM導入後の初期確認向け |
-| Advanced | `Assets/VirtualLightExamples/Advanced` | PBR比較、Rectangle Areaの方向性、Spot shadow、occlusion、複数beam、6台のmoving head演出。リポジトリをUnityプロジェクトとして開いて確認 |
+| Core Feature Matrix | Package Managerの**Virtual Light Core Feature Matrix** | Directional、Circle/Rectangle Point、Circle/Rectangle Spot、Rectangle Areaをラベルと境界guide付きで比較するscript-freeの静的scene |
+| Feature Lab | `Assets/VirtualLightExamples/Advanced` | Point / SpotのCircle・Rectangle runtime切替、PBR比較、Spot shadow、first-hit occlusion、beam / impactを確認 |
+| Area / Arena | `Assets/VirtualLightExamples/Advanced` | Rectangle Areaの方向性、複数beam、6台のmoving head演出を確認 |
+| Performance | `Assets/VirtualLightExamples/PerformanceBenchmark` | tiled/direct経路、light数、shadow数、CPU/GPU負荷を計測 |
 
-UPMからImportできるのはBasic sampleです。Advanced examplesはパッケージには含まれず、このリポジトリの開発プロジェクト側にあります。
+UPMからImportできるのはVirtual Light Core Feature Matrix sampleです。Advanced examplesはパッケージには含まれず、このリポジトリの開発プロジェクト側にあります。
 
 ## 現在の制限
 

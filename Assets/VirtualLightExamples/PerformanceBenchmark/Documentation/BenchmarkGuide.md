@@ -16,6 +16,8 @@
 | receiver shader | `Universal Render Pipeline/Lit` | `MizoTake/Virtual Light/Benchmark Receiver` |
 | Spot数 | 1 / 4 / 8 / 16 | 1 / 4 / 8 / 16 |
 
+Virtual Spotは`Shape = Circle`へ固定し、Unity標準のcone Spotと円形投影条件を揃えています。Rectangle Spotはdirect light / custom shadowの投影形状が異なるため、この同等条件ベンチマークには混在させません。
+
 PC用URP AssetのAdditional Light Shadow Atlasは2048×2048です。512×512を縮小せず格納できる最大数が16であるため、64灯と128灯は影付き同等比較から除外しています。
 
 Virtual側のreceiverは、URP Lit互換shaderの多数の未使用variantを測定対象から外すため、同じmetallic / smoothnessのBRDF初期化とVirtual Light評価だけを行う専用shaderです。Standard / Virtualのreceiver geometryとsurface parameterは一致させています。

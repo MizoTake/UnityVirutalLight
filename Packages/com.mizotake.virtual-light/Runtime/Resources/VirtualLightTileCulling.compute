@@ -39,7 +39,8 @@ void CullTiles(uint3 dispatchThreadId : SV_DispatchThreadID)
             float4 clipPosition = mul(_VirtualLightViewProjection, float4(light.positionRadius.xyz, 1.0));
             float3 viewPosition = mul(_VirtualLightView, float4(light.positionRadius.xyz, 1.0)).xyz;
             float areaExtension = lightType == 2u ? length(light.areaSizeParams.xy) * 0.5 : 0.0;
-            float conservativeRadius = light.positionRadius.w + areaExtension;
+            bool rectanglePoint = lightType == 0u && (uint)round(light.areaSizeParams.y) == 1u;
+            float conservativeRadius = (rectanglePoint ? light.positionRadius.w * 1.73205080757 : light.positionRadius.w) + areaExtension;
             if (clipPosition.w <= 0.0001)
             {
                 overlaps = viewPosition.z - conservativeRadius <= 0.0;

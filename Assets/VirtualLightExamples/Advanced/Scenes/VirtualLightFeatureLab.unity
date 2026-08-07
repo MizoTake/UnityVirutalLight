@@ -283,11 +283,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 2
+  shape: 0
   color: {r: 1, g: 0.38, b: 0.14, a: 1}
   intensity: 1.8
   range: 5.5
   innerAngle: 25
   outerAngle: 40
+  spotPenumbraSharpness: 0
   areaSize: {x: 2.8, y: 1.2}
   areaSampleCount: 8
   twoSided: 0
@@ -1972,9 +1974,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   title: VIRTUAL LIGHT LAB
-  subtitle: POINT   /   SPOT   /   RECTANGLE AREA
-  status: LIVE GPU TILED LIGHTING  -  ANIMATED RUNTIME UPDATE
-  statusColor: {r: 0.52, g: 0.58, b: 0.68, a: 1}
+  subtitle: POINT + SPOT SHAPE  /  SHADOW + BEAM  /  RECTANGLE AREA
+  status: RUNTIME SHAPE  -  POINT + SPOT / CIRCLE
+  statusColor: {r: 0.12, g: 0.82, b: 1, a: 1}
   showBeamStatus: 1
   beamTitle: BEAM VOLUME / FIRST-HIT OCCLUSION
   beamStatus: CLEAR  -  FULL BEAM TO TARGET
@@ -2498,11 +2500,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 1
+  shape: 0
   color: {r: 0.08, g: 0.62, b: 1, a: 1}
   intensity: 5.5
   range: 6.5
   innerAngle: 4
   outerAngle: 12
+  spotPenumbraSharpness: 0
   areaSize: {x: 1, y: 1}
   areaSampleCount: 4
   twoSided: 0
@@ -3000,11 +3004,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   type: 0
+  shape: 0
   color: {r: 1, g: 0.08, b: 0.42, a: 1}
   intensity: 2.2
   range: 4.5
   innerAngle: 25
   outerAngle: 40
+  spotPenumbraSharpness: 0
   areaSize: {x: 1, y: 1}
   areaSampleCount: 4
   twoSided: 0
@@ -4027,9 +4033,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animatedPointLight: {fileID: 1536464568}
-  animatedSpotLight: {fileID: 0}
+  animatedSpotLight: {fileID: 1396705111}
   animatedAreaLight: {fileID: 62881073}
   spotTarget: {fileID: 1875883958}
+  sampleOverlay: {fileID: 1230836876}
+  animatePunctualShape: 1
+  shapeSwitchInterval: 4
+  rectangleRoll: 30
   orbitRadius: 0.8
   orbitSpeed: 0.55
   orbitCenter: {x: -2.25, y: 1.45, z: 0.55}

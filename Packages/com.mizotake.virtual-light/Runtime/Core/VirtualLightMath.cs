@@ -18,6 +18,20 @@ namespace MizoTake.VirtualLight
             return window * window * inverseSquare;
         }
 
+        public static bool SupportsShape(VirtualLightType type)
+        {
+            return type == VirtualLightType.Point || type == VirtualLightType.Spot;
+        }
+
+        public static float EvaluatePunctualRangeDistance(Vector3 offsetFromLight, Vector3 lightDirection, float rotation, VirtualLightShape shape)
+        {
+            offsetFromLight = FiniteOrZero(offsetFromLight);
+            shape = SanitizeShape(shape);
+            if (shape == VirtualLightShape.Circle) return offsetFromLight.magnitude;
+            GetLightBasis(lightDirection, rotation, out var right, out var up, out var forward);
+            return Mathf.Max(Mathf.Abs(Vector3.Dot(offsetFromLight, right)), Mathf.Max(Mathf.Abs(Vector3.Dot(offsetFromLight, up)), Mathf.Abs(Vector3.Dot(offsetFromLight, forward))));
+        }
+
         public static float ResolveVisibleDistance(float maximumDistance, float hitDistance, float surfaceOffset)
         {
             maximumDistance = Mathf.Max(0f, FiniteOrZero(maximumDistance));
@@ -100,13 +114,27 @@ namespace MizoTake.VirtualLight
 
         public static float EvaluateSpotAttenuation(Vector3 lightDirection, Vector3 directionFromLight, float innerConeAngle, float outerConeAngle)
         {
+            return EvaluateSpotAttenuation(lightDirection, 0f, VirtualLightShape.Circle, directionFromLight, innerConeAngle, outerConeAngle);
+        }
+
+        public static float EvaluateSpotAttenuation(Vector3 lightDirection, float rotation, VirtualLightShape shape, Vector3 directionFromLight, float innerConeAngle, float outerConeAngle)
+        {
             lightDirection = NormalizeOrForward(lightDirection);
             directionFromLight = NormalizeOrForward(directionFromLight);
+            shape = SanitizeShape(shape);
             innerConeAngle = Mathf.Clamp(FiniteOrZero(innerConeAngle), 0f, 179f);
             outerConeAngle = Mathf.Clamp(FiniteOrZero(outerConeAngle), innerConeAngle, 179f);
             var innerCos = Mathf.Cos(innerConeAngle * Mathf.Deg2Rad * 0.5f);
             var outerCos = Mathf.Cos(outerConeAngle * Mathf.Deg2Rad * 0.5f);
-            return Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(outerCos, Mathf.Max(innerCos, outerCos + 0.0001f), Vector3.Dot(lightDirection, directionFromLight)));
+            var angularCosine = Vector3.Dot(lightDirection, directionFromLight);
+            if (shape == VirtualLightShape.Rectangle)
+            {
+                GetLightBasis(lightDirection, rotation, out var right, out var up, out var forward);
+                var forwardProjection = Vector3.Dot(forward, directionFromLight);
+                var lateralProjection = Mathf.Max(Mathf.Abs(Vector3.Dot(right, directionFromLight)), Mathf.Abs(Vector3.Dot(up, directionFromLight)));
+                angularCosine = forwardProjection / Mathf.Max(Mathf.Sqrt(forwardProjection * forwardProjection + lateralProjection * lateralProjection), 0.0001f);
+            }
+            return Mathf.InverseLerp(outerCos, Mathf.Max(innerCos, outerCos + 0.0001f), angularCosine);
         }
 
         public static float EvaluateSpotPenumbraAttenuation(float angularAttenuation, float sharpness)
@@ -133,6 +161,24 @@ namespace MizoTake.VirtualLight
         {
             value = FiniteOrZero(value);
             return value.sqrMagnitude > 0.000001f ? value.normalized : Vector3.forward;
+        }
+
+        internal static VirtualLightShape SanitizeShape(VirtualLightShape shape)
+        {
+            return shape == VirtualLightShape.Rectangle ? VirtualLightShape.Rectangle : VirtualLightShape.Circle;
+        }
+
+        internal static void GetLightBasis(Vector3 direction, float rotation, out Vector3 right, out Vector3 up, out Vector3 forward)
+        {
+            forward = NormalizeOrForward(direction);
+            var seed = Mathf.Abs(forward.y) < 0.99f ? Vector3.up : Vector3.right;
+            var referenceRight = Vector3.Cross(seed, forward).normalized;
+            var referenceUp = Vector3.Cross(forward, referenceRight).normalized;
+            var radians = FiniteOrZero(rotation) * Mathf.Deg2Rad;
+            var cosine = Mathf.Cos(radians);
+            var sine = Mathf.Sin(radians);
+            right = referenceRight * cosine + referenceUp * sine;
+            up = referenceUp * cosine - referenceRight * sine;
         }
 
         internal static Color FiniteColor(Color value)

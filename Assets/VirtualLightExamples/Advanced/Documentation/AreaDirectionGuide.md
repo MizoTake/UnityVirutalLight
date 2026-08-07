@@ -2,6 +2,8 @@
 
 `VirtualLightAreaDirectionSample.unity`は、Rectangle Area Lightの面法線と`Two Sided`の違いを、同一条件の3灯で比較するシーンです。
 
+Rectangle Areaは独立したLight Typeです。Point / Spotで選べるRectangle Shapeとは別の機能であり、このSceneではPoint / Spot Shapeを比較しません。
+
 ## 3つの比較条件
 
 - Forward-Facing / One Sided: `Transform.forward`を下向きにし、下側のReceiverを照らします。

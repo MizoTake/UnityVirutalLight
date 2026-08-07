@@ -17,6 +17,7 @@ packageは固定のlight数やshadow slice数を設定していません。実�
 ## 現在の非対応範囲
 
 - Point/Rectangle Area shadow
+- Rectangle Spotに対応する四角形のbeam volume / impact footprint
 - transparent shadow transmission
 - temporal accumulationとmultiple scattering
 - generated VPL/light field

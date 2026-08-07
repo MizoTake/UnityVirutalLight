@@ -72,9 +72,9 @@
 ### 3.1 機能要件
 
 1. ランタイム中に仮想ライトを追加・更新・削除できること。
-2. 仮想ライトは位置、色、強度、半径、方向、種類を持つこと。
+2. 仮想ライトは位置、色、強度、半径、方向、種類を持ち、Point型とSpot型は種類と独立したCircle / Rectangle形状を選択できること。
 3. Directional型、Point型、Spot型、Rectangle Area型を必須対応とすること。
-4. Rectangle Area型は幅・高さ・片面発光方向・近似サンプル数を指定できること。
+4. Rectangle Point型はTransformに追従する箱形範囲、Rectangle Spot型はTransformに追従する正四角錐範囲として評価し、Rectangle Area型は幅・高さ・片面発光方向・近似サンプル数を指定できること。
 5. 仮想ライトが不透明物体のPBRライティングへ影響すること。
 6. 必要に応じて、透明物体・霧・水中表現へも影響できること。
 7. 複数ライトの影響を同時に加算できること。
@@ -199,10 +199,8 @@ struct VirtualLightGpu
     // w: packed flags
     float4 coneShadowFlags;
 
-    // x: area width
-    // y: area height
-    // z: area sample count or approximation mode
-    // w: reserved
+    // Point/Spot: x: spot penumbra sharpness, y: shape, z: reserved, w: roll radians
+    // Rectangle Area: x: area width, y: area height, z: area sample count, w: roll radians
     float4 areaSizeParams;
 };
 
@@ -242,6 +240,8 @@ public struct VirtualLightGpu
 | 4 | Disc Area | Phase 2 |
 | 5 | Tube / Line Area | Phase 2 |
 | 6 | Generated VPL | Phase 2 |
+
+Point型とSpot型の`areaSizeParams.y`は、`0 = Circle`、`1 = Rectangle`とする。Circle Pointは球、Rectangle PointはRangeを半辺とする箱、Circle Spotは円錐、Rectangle SpotはInner / Outer Angleを両軸へ等しく適用した正四角錐として評価する。
 
 ### 6.4 フラグ候補
 
@@ -285,6 +285,7 @@ public struct VirtualLightDescriptor
     public int AreaSampleCount;
     public bool TwoSided;
     public VirtualLightType Type;
+    public VirtualLightShape Shape;
     public VirtualLightFlags Flags;
     public int Priority;
 }
@@ -309,6 +310,7 @@ public struct VirtualLightDescriptor
 public sealed class VirtualLight : MonoBehaviour
 {
     [SerializeField] private VirtualLightType type = VirtualLightType.Point;
+    [SerializeField] private VirtualLightShape shape = VirtualLightShape.Circle;
     [ColorUsage(true, true)]
     [SerializeField] private Color color = Color.white;
     [Min(0f)] [SerializeField] private float intensity = 1f;
@@ -331,8 +333,8 @@ public sealed class VirtualLight : MonoBehaviour
 ```
 
 - `transform.position`: ライト中心。
-- `transform.forward`: Directional、SpotおよびAreaの光線進行／照射方向。Directionalの位置とRangeは照明結果へ影響しない。
-- `transform.right / up`: Rectangle Areaの面方向。
+- `transform.forward`: Directional、SpotおよびAreaの光線進行／照射方向と、Rectangle Pointの箱方向。Directionalの位置とRangeは照明結果へ影響しない。
+- `transform.right / up`: Rectangle Point / Spotの形状方向とRectangle Areaの面方向。Point / SpotのRectangle境界はTransform rollにも追従する。
 - Transform Scaleはライト寸法へ暗黙反映せず、`Range`と`AreaSize`を明示値として扱う。
 - 負のScaleは未対応とし、Inspectorに警告を表示する。
 - `InnerAngle > OuterAngle`の場合はInspectorで自動補正する。
@@ -360,13 +362,13 @@ VirtualLightは、非選択時でも種類と大まかな範囲が分かり、�
 ### 8.3 Point Gizmo
 
 - 中心から6方向へ短い放射線を表示する。
-- 影響範囲をワイヤースフィアで表示する。
+- Circleでは影響範囲をワイヤースフィア、RectangleではTransformに追従するワイヤーボックスで表示する。
 - 選択時はRange用の半径ハンドルを表示する。
 - 影響度の目安として、25%、50%、100%範囲を任意表示できる。
 
 ### 8.4 Spot Gizmo
 
-- `transform.forward`方向へ外側コーンを表示する。
+- `transform.forward`方向へCircleでは外側コーン、Rectangleでは外側の正四角錐を表示する。
 - 外側コーンは `OuterConeAngle` と `Range` で決定する。
 - 内側コーンは細い線または半透明表示で区別する。
 - 先端面に円周を描き、照射範囲を明確にする。
@@ -527,14 +529,16 @@ Lo += BRDF(material, N, V, L)
 ### 11.1 距離減衰
 
 ```hlsl
-float EvaluateRangeAttenuation(float distanceToLight, float radius)
+float EvaluateRangeAttenuation(float distanceToLight, float rangeDistance, float radius)
 {
-    float normalized = saturate(1.0 - distanceToLight / max(radius, 1e-4));
-    float rangeFade = normalized * normalized;
+    float normalized = rangeDistance / max(radius, 1e-4);
+    float rangeFade = saturate(1.0 - normalized * normalized * normalized * normalized);
     float inverseSquare = rcp(max(distanceToLight * distanceToLight, 1e-2));
-    return rangeFade * inverseSquare;
+    return rangeFade * rangeFade * inverseSquare;
 }
 ```
+
+Circle Point / Spotでは`rangeDistance = distanceToLight`とする。Rectangle PointではTransformローカル基底へ投影したオフセットの最大絶対成分を`rangeDistance`に使い、逆二乗項には実距離を維持する。
 
 ### 11.2 Spot減衰
 
@@ -545,10 +549,12 @@ float EvaluateSpotAttenuation(
     float innerCos,
     float outerCos)
 {
-    float cosTheta = dot(lightDirection, directionFromLight);
-    return smoothstep(outerCos, innerCos, cosTheta);
+    float cosTheta = shape == Circle ? dot(lightDirection, directionFromLight) : EvaluateSquarePyramidCosine(lightBasis, directionFromLight);
+    return saturate((cosTheta - outerCos) / max(innerCos - outerCos, 1e-5));
 }
 ```
+
+Rectangle Spotの`EvaluateSquarePyramidCosine`は、forward成分とright / up成分の最大絶対値から正四角錐の角度座標を求める。これにより円錐の対角外側でも四角錐の内側なら寄与し、形状はTransform rollへ追従する。線形の角度減衰値には`SpotPenumbraSharpness`に応じた2乗から8乗のペナンブラ曲線を適用する。
 
 ### 11.3 強度単位
 

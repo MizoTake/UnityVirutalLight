@@ -8,6 +8,7 @@ namespace MizoTake.VirtualLight
     public sealed class VirtualLight : MonoBehaviour
     {
         [SerializeField] private VirtualLightType type = VirtualLightType.Point;
+        [SerializeField, Tooltip("Selects a circular/spherical Point or Spot influence, or a Transform-aligned rectangular box/pyramid influence.")] private VirtualLightShape shape = VirtualLightShape.Circle;
         [SerializeField, ColorUsage(true, true)] private Color color = Color.white;
         [SerializeField, Min(0f)] private float intensity = 1f;
         [SerializeField, Min(0.01f)] private float range = 5f;
@@ -31,6 +32,7 @@ namespace MizoTake.VirtualLight
 
         public VirtualLightHandle Handle => handle;
         public VirtualLightType Type { get => type; set { type = value; Synchronize(); } }
+        public VirtualLightShape Shape { get => shape; set { shape = VirtualLightMath.SanitizeShape(value); Synchronize(); } }
         public Color Color { get => color; set { color = value; Synchronize(); } }
         public float Intensity { get => intensity; set { intensity = Mathf.Max(0f, value); Synchronize(); } }
         public float Range { get => range; set { range = Mathf.Max(0.01f, value); Synchronize(); } }
@@ -73,6 +75,7 @@ namespace MizoTake.VirtualLight
                     OcclusionDistance = occlusionDistance,
                     TwoSided = twoSided,
                     Type = type,
+                    Shape = shape,
                     Flags = flags,
                     Priority = priority
                 }.Sanitized();
@@ -127,6 +130,7 @@ namespace MizoTake.VirtualLight
             areaSize = new Vector2(Mathf.Max(0.01f, VirtualLightMath.FiniteOrZero(areaSize.x)), Mathf.Max(0.01f, VirtualLightMath.FiniteOrZero(areaSize.y)));
             areaSampleCount = VirtualLightMath.SanitizeAreaSampleCount(areaSampleCount);
             occlusionDistance = float.IsFinite(occlusionDistance) ? Mathf.Clamp(occlusionDistance, -1f, range) : -1f;
+            shape = VirtualLightMath.SanitizeShape(shape);
         }
 
         private float CalculateAreaRotation()

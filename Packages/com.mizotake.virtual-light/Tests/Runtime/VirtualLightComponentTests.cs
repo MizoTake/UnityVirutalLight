@@ -78,6 +78,110 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [UnityTest]
+        public IEnumerator CameraRender_RectanglePointIncludesBoxCornerOutsideCircleRange()
+        {
+            VirtualLightSystem.ResetForTests();
+            Assert.That(SystemInfo.supportsComputeShaders, Is.True);
+            var cameraObject = new GameObject("Rectangle Point Render Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -5f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 2f;
+            var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 4f;
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            receiver.GetComponent<Renderer>().sharedMaterial = material;
+            var lightObject = new GameObject("Rectangle Point Render Test Light");
+            lightObject.transform.position = new Vector3(0f, 0f, -1f);
+            var virtualLight = lightObject.AddComponent<MizoTake.VirtualLight.VirtualLight>();
+            virtualLight.Type = VirtualLightType.Point;
+            virtualLight.Shape = VirtualLightShape.Circle;
+            virtualLight.Color = Color.red;
+            virtualLight.Intensity = 100f;
+            virtualLight.Range = 1.5f;
+            yield return null;
+            var sampleScreen = camera.WorldToScreenPoint(new Vector3(0.9f, 0.9f, 0f));
+            var circle = RenderPixel(camera, renderTexture, Mathf.RoundToInt(sampleScreen.x), Mathf.RoundToInt(sampleScreen.y));
+            virtualLight.Shape = VirtualLightShape.Rectangle;
+            yield return null;
+            var rectangle = RenderPixel(camera, renderTexture, Mathf.RoundToInt(sampleScreen.x), Mathf.RoundToInt(sampleScreen.y));
+
+            Assert.That(Shader.GetGlobalInt("_VirtualLightUseTiling"), Is.EqualTo(1), "The test must exercise Rectangle Point compute-tile culling rather than the direct fallback.");
+            Assert.That(circle.r, Is.LessThan(0.01f));
+            Assert.That(rectangle.r, Is.GreaterThan(circle.r + 0.02f));
+            Object.Destroy(lightObject);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
+        public IEnumerator CameraRender_RectangleSpotIncludesSquareCornerOutsideCircleCone()
+        {
+            VirtualLightSystem.ResetForTests();
+            Assert.That(SystemInfo.supportsComputeShaders, Is.True);
+            var cameraObject = new GameObject("Rectangle Spot Render Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -5f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 2f;
+            var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 4f;
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            receiver.GetComponent<Renderer>().sharedMaterial = material;
+            var lightObject = new GameObject("Rectangle Spot Render Test Light");
+            lightObject.transform.position = new Vector3(0f, 0f, -2f);
+            lightObject.transform.rotation = Quaternion.identity;
+            var virtualLight = lightObject.AddComponent<MizoTake.VirtualLight.VirtualLight>();
+            virtualLight.Type = VirtualLightType.Spot;
+            virtualLight.Shape = VirtualLightShape.Circle;
+            virtualLight.Color = Color.red;
+            virtualLight.Intensity = 100f;
+            virtualLight.Range = 5f;
+            virtualLight.InnerAngle = 40f;
+            virtualLight.OuterAngle = 60f;
+            yield return null;
+            var sampleScreen = camera.WorldToScreenPoint(new Vector3(1f, 1f, 0f));
+            var circle = RenderPixel(camera, renderTexture, Mathf.RoundToInt(sampleScreen.x), Mathf.RoundToInt(sampleScreen.y));
+            virtualLight.Shape = VirtualLightShape.Rectangle;
+            yield return null;
+            var rectangle = RenderPixel(camera, renderTexture, Mathf.RoundToInt(sampleScreen.x), Mathf.RoundToInt(sampleScreen.y));
+
+            Assert.That(circle.r, Is.LessThan(0.01f));
+            Assert.That(rectangle.r, Is.GreaterThan(circle.r + 0.02f));
+            Object.Destroy(lightObject);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
         public IEnumerator CameraRender_DirectionalLightsEveryTileWithoutRangeAttenuation()
         {
             VirtualLightSystem.ResetForTests();

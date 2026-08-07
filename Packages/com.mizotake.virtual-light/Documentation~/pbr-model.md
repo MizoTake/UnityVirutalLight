@@ -30,7 +30,9 @@ Point and Spot lights use windowed inverse-square distance attenuation:
 attenuation = saturate(1 - (distance / range)^4)^2 / max(distance^2, 0.0001)
 ```
 
-The smooth window reaches zero at the configured range without replacing the inverse-square core. Spot lights multiply this by a linearly remapped cone term between the outer and inner cone cosines. `Surface Penumbra Sharpness = 0` uses the standard squared term. Increasing it continuously focuses only the inner-to-outer transition toward an eighth-power term while keeping attenuation at one on the inner boundary and zero on the outer boundary. This makes the visible receiver highlight follow the inner cone without changing beam bounds or shadow projection.
+The smooth window reaches zero at the configured range without replacing the inverse-square core. Circle Point uses world-space distance for both the window and inverse-square terms. Rectangle Point uses the maximum absolute Transform-local X/Y/Z distance for the window, producing a box whose half-extent is Range, while retaining world-space distance for inverse-square energy falloff.
+
+Spot lights multiply distance attenuation by a linearly remapped shape term between the outer and inner boundaries. Circle Spot uses the forward-direction cosine and creates a circular cone. Rectangle Spot takes the maximum absolute horizontal/vertical slope in the Transform-oriented light basis and creates a square pyramid; Inner/Outer Angle apply equally on both axes. `Surface Penumbra Sharpness = 0` uses the standard squared term. Increasing it continuously focuses only the inner-to-outer transition toward an eighth-power term while keeping attenuation at one on the inner boundary and zero on the outer boundary. Rectangle Spot direct-light boundaries and shadow projection follow Transform roll. The optional beam and impact visual path remains circular.
 
 ## Directional lights
 

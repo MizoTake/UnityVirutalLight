@@ -147,6 +147,49 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(VirtualLightMath.EvaluateRangeAttenuation(distance, radius), Is.EqualTo(expected).Within(0.000001f));
         }
 
+        [Test]
+        public void EvaluatePunctualRangeDistance_RectangleUsesRotatedBoxBoundary()
+        {
+            var offset = new Vector3(1f, 1f, 1f);
+
+            var circleDistance = VirtualLightMath.EvaluatePunctualRangeDistance(offset, Vector3.forward, 0f, VirtualLightShape.Circle);
+            var rectangleDistance = VirtualLightMath.EvaluatePunctualRangeDistance(offset, Vector3.forward, 0f, VirtualLightShape.Rectangle);
+            var rotatedRectangleDistance = VirtualLightMath.EvaluatePunctualRangeDistance(new Vector3(Mathf.Sqrt(2f), 0f, 0f), Vector3.forward, 45f, VirtualLightShape.Rectangle);
+
+            Assert.That(circleDistance, Is.EqualTo(Mathf.Sqrt(3f)).Within(0.0001f));
+            Assert.That(rectangleDistance, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(rotatedRectangleDistance, Is.EqualTo(1f).Within(0.0001f));
+        }
+
+        [Test]
+        public void EvaluateSpotAttenuation_RectangleIncludesSquareCornerOutsideCircle()
+        {
+            var directionFromLight = new Vector3(0.5f, 0.5f, 1f).normalized;
+
+            var circle = VirtualLightMath.EvaluateSpotAttenuation(Vector3.forward, 0f, VirtualLightShape.Circle, directionFromLight, 40f, 60f);
+            var rectangle = VirtualLightMath.EvaluateSpotAttenuation(Vector3.forward, 0f, VirtualLightShape.Rectangle, directionFromLight, 40f, 60f);
+
+            Assert.That(circle, Is.Zero);
+            Assert.That(rectangle, Is.GreaterThan(0f));
+        }
+
+        [TestCase(VirtualLightShape.Circle)]
+        [TestCase(VirtualLightShape.Rectangle)]
+        public void EvaluateSpotAttenuation_ReturnsGpuCompatibleLinearAngularRamp(VirtualLightShape shape)
+        {
+            const float innerAngle = 40f;
+            const float outerAngle = 60f;
+            var innerCosine = Mathf.Cos(innerAngle * Mathf.Deg2Rad * 0.5f);
+            var outerCosine = Mathf.Cos(outerAngle * Mathf.Deg2Rad * 0.5f);
+            var angularCosine = Mathf.Lerp(outerCosine, innerCosine, 0.25f);
+            var directionFromLight = new Vector3(Mathf.Sqrt(1f - angularCosine * angularCosine), 0f, angularCosine);
+
+            var attenuation = VirtualLightMath.EvaluateSpotAttenuation(Vector3.forward, 0f, shape, directionFromLight, innerAngle, outerAngle);
+
+            Assert.That(attenuation, Is.EqualTo(0.25f).Within(0.0001f));
+            Assert.That(VirtualLightMath.EvaluateSpotPenumbraAttenuation(attenuation, 0f), Is.EqualTo(0.0625f).Within(0.0001f));
+        }
+
         [TestCase(0.5f, 0f, 0.25f)]
         [TestCase(0.5f, 1f, 0.00390625f)]
         [TestCase(1f, 1f, 1f)]
@@ -261,6 +304,26 @@ namespace MizoTake.VirtualLight.Tests
             var matrix = VirtualLightShadowMath.BuildViewProjection(descriptor);
 
             for (var row = 0; row < 4; row++) for (var column = 0; column < 4; column++) Assert.That(float.IsFinite(matrix[row, column]), Is.True);
+        }
+
+        [Test]
+        public void ShadowMath_RectangleSpotViewFollowsTransformRoll()
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Spot;
+            descriptor.Shape = VirtualLightShape.Rectangle;
+            descriptor.Direction = Vector3.forward;
+            descriptor.AreaRotation = 45f;
+            VirtualLightMath.GetLightBasis(descriptor.Direction, descriptor.AreaRotation, out var right, out var up, out _);
+
+            var view = VirtualLightShadowMath.BuildView(descriptor);
+            var viewRight = view.MultiplyVector(right);
+            var viewUp = view.MultiplyVector(up);
+
+            Assert.That(viewRight.x, Is.EqualTo(1f).Within(0.0001f));
+            Assert.That(viewRight.y, Is.Zero.Within(0.0001f));
+            Assert.That(viewUp.x, Is.Zero.Within(0.0001f));
+            Assert.That(viewUp.y, Is.EqualTo(1f).Within(0.0001f));
         }
 
         [Test]

@@ -102,9 +102,9 @@ namespace MizoTake.VirtualLight.Editor
                 reason = "The Light component is not editable.";
                 return false;
             }
-            if (!TryMapType(light.type, out _))
+            if (!TryMapType(light, out _, out _))
             {
-                reason = $"Light type '{light.type}' cannot be represented by Virtual Light. Supported source types are Directional, Point, Spot, and Rectangle.";
+                reason = $"Light type '{light.type}' cannot be represented by Virtual Light. Supported source types are Directional, Point, cone or pyramid Spot, and Rectangle.";
                 return false;
             }
             if (light.TryGetComponent<MizoTake.VirtualLight.VirtualLight>(out _))
@@ -174,7 +174,7 @@ namespace MizoTake.VirtualLight.Editor
                 EditorUtility.DisplayDialog(DialogTitle, $"No {description} were found.", "OK");
                 return;
             }
-            if (!EditorUtility.DisplayDialog(DialogTitle, $"Replace {lights.Count} {description} with Virtual Light components?\n\nDirectional, Point, Spot, and Rectangle parameters are copied when applicable. Unsupported light types are left unchanged. References whose field type is UnityEngine.Light cannot be redirected to Virtual Light and will become missing for converted components. Virtual Light receiver shaders are required, and only Spot shadows are currently supported. Scenes and Prefabs are not saved automatically. The operation can be undone in the current Editor session.", "Convert", "Cancel")) return;
+            if (!EditorUtility.DisplayDialog(DialogTitle, $"Replace {lights.Count} {description} with Virtual Light components?\n\nDirectional, Point, cone or pyramid Spot, and Rectangle parameters are copied when applicable. Pyramid becomes Spot + Rectangle. Box Spot and other unsupported light types are left unchanged. References whose field type is UnityEngine.Light cannot be redirected to Virtual Light and will become missing for converted components. Virtual Light receiver shaders are required, and only Spot shadows are currently supported. Scenes and Prefabs are not saved automatically. The operation can be undone in the current Editor session.", "Convert", "Cancel")) return;
             var result = ConvertLights(lights);
             var skippedMessage = result.SkippedCount == 0 ? string.Empty : $"\n\nSkipped {result.SkippedCount} component(s). See the Console for details.";
             EditorUtility.DisplayDialog(DialogTitle, $"Converted {result.ConvertedCount} of {result.RequestedCount} Light component(s).{skippedMessage}", "OK");
@@ -182,7 +182,7 @@ namespace MizoTake.VirtualLight.Editor
 
         private static MizoTake.VirtualLight.VirtualLight ConvertLightInternal(Light source, bool recordUndo)
         {
-            TryMapType(source.type, out var type);
+            TryMapType(source, out var type, out var shape);
             var gameObject = source.gameObject;
             var sourceEnabled = source.enabled;
             var sourceColor = source.useColorTemperature ? source.color * Mathf.CorrelatedColorTemperatureToRGB(source.colorTemperature) : source.color;
@@ -191,6 +191,7 @@ namespace MizoTake.VirtualLight.Editor
             if (recordUndo) Undo.RecordObject(target, "Copy Light Parameters to Virtual Light");
             if (!sourceEnabled) target.enabled = false;
             target.Type = type;
+            target.Shape = shape;
             target.Color = sourceColor;
             target.Intensity = source.intensity;
             if (type != VirtualLightType.Directional) target.Range = source.range;
@@ -212,9 +213,10 @@ namespace MizoTake.VirtualLight.Editor
             return target;
         }
 
-        private static bool TryMapType(LightType sourceType, out VirtualLightType targetType)
+        private static bool TryMapType(Light source, out VirtualLightType targetType, out VirtualLightShape targetShape)
         {
-            switch (sourceType)
+            targetShape = VirtualLightShape.Circle;
+            switch (source.type)
             {
                 case LightType.Directional:
                     targetType = VirtualLightType.Directional;
@@ -224,7 +226,14 @@ namespace MizoTake.VirtualLight.Editor
                     return true;
                 case LightType.Spot:
                     targetType = VirtualLightType.Spot;
+                    return TryMapSpotShape(source, out targetShape);
+                case LightType.Pyramid:
+                    targetType = VirtualLightType.Spot;
+                    targetShape = VirtualLightShape.Rectangle;
                     return true;
+                case LightType.Box:
+                    targetType = default;
+                    return false;
                 case LightType.Rectangle:
                     targetType = VirtualLightType.RectangleArea;
                     return true;
@@ -233,6 +242,16 @@ namespace MizoTake.VirtualLight.Editor
                     return false;
             }
         }
+
+#pragma warning disable 618
+        private static bool TryMapSpotShape(Light source, out VirtualLightShape targetShape)
+        {
+            targetShape = VirtualLightShape.Circle;
+            if (source.shape == LightShape.Box) return false;
+            if (source.shape == LightShape.Pyramid) targetShape = VirtualLightShape.Rectangle;
+            return true;
+        }
+#pragma warning restore 618
 
         private static void DestroyComponent(Component component, bool recordUndo)
         {

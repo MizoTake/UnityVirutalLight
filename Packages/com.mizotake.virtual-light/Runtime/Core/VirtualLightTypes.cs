@@ -12,6 +12,12 @@ namespace MizoTake.VirtualLight
         Directional = 3
     }
 
+    public enum VirtualLightShape
+    {
+        Circle = 0,
+        Rectangle = 1
+    }
+
     [Flags]
     public enum VirtualLightFlags
     {
@@ -96,6 +102,7 @@ namespace MizoTake.VirtualLight
         public float OcclusionDistance;
         public bool TwoSided;
         public VirtualLightType Type;
+        public VirtualLightShape Shape;
         public VirtualLightFlags Flags;
         public int Priority;
 
@@ -113,6 +120,7 @@ namespace MizoTake.VirtualLight
             AreaSampleCount = 4,
             OcclusionDistance = -1f,
             Type = VirtualLightType.Point,
+            Shape = VirtualLightShape.Circle,
             Flags = VirtualLightFlags.Enabled | VirtualLightFlags.AffectOpaque
         };
 
@@ -134,6 +142,7 @@ namespace MizoTake.VirtualLight
             sanitized.AreaSize = new Vector2(Mathf.Max(0.01f, VirtualLightMath.FiniteOrZero(AreaSize.x)), Mathf.Max(0.01f, VirtualLightMath.FiniteOrZero(AreaSize.y)));
             sanitized.AreaSampleCount = VirtualLightMath.SanitizeAreaSampleCount(AreaSampleCount);
             sanitized.AreaRotation = VirtualLightMath.FiniteOrZero(AreaRotation);
+            sanitized.Shape = VirtualLightMath.SanitizeShape(Shape);
             sanitized.OcclusionDistance = float.IsFinite(OcclusionDistance) ? Mathf.Clamp(OcclusionDistance, -1f, sanitized.Radius) : -1f;
             if (sanitized.TwoSided)
             {
@@ -152,7 +161,7 @@ namespace MizoTake.VirtualLight
 
         public bool Equals(VirtualLightDescriptor other)
         {
-            return Position == other.Position && Direction == other.Direction && LinearColor == other.LinearColor && Intensity.Equals(other.Intensity) && Radius.Equals(other.Radius) && InnerConeAngle.Equals(other.InnerConeAngle) && OuterConeAngle.Equals(other.OuterConeAngle) && SpotPenumbraSharpness.Equals(other.SpotPenumbraSharpness) && AreaSize == other.AreaSize && AreaSampleCount == other.AreaSampleCount && AreaRotation.Equals(other.AreaRotation) && OcclusionDistance.Equals(other.OcclusionDistance) && TwoSided == other.TwoSided && Type == other.Type && Flags == other.Flags && Priority == other.Priority;
+            return Position == other.Position && Direction == other.Direction && LinearColor == other.LinearColor && Intensity.Equals(other.Intensity) && Radius.Equals(other.Radius) && InnerConeAngle.Equals(other.InnerConeAngle) && OuterConeAngle.Equals(other.OuterConeAngle) && SpotPenumbraSharpness.Equals(other.SpotPenumbraSharpness) && AreaSize == other.AreaSize && AreaSampleCount == other.AreaSampleCount && AreaRotation.Equals(other.AreaRotation) && OcclusionDistance.Equals(other.OcclusionDistance) && TwoSided == other.TwoSided && Type == other.Type && Shape == other.Shape && Flags == other.Flags && Priority == other.Priority;
         }
     }
 
@@ -174,8 +183,15 @@ namespace MizoTake.VirtualLight
                 ColorIntensity = new Vector4(descriptor.LinearColor.r, descriptor.LinearColor.g, descriptor.LinearColor.b, descriptor.Intensity),
                 DirectionType = new Vector4(descriptor.Direction.x, descriptor.Direction.y, descriptor.Direction.z, (float)descriptor.Type),
                 ConeShadowFlags = new Vector4(Mathf.Cos(descriptor.InnerConeAngle * Mathf.Deg2Rad * 0.5f), Mathf.Cos(descriptor.OuterConeAngle * Mathf.Deg2Rad * 0.5f), -1f, (float)(uint)descriptor.Flags),
-                AreaSizeParams = descriptor.Type == VirtualLightType.Spot ? new Vector4(descriptor.SpotPenumbraSharpness, 0f, 0f, 0f) : new Vector4(descriptor.AreaSize.x, descriptor.AreaSize.y, descriptor.AreaSampleCount, descriptor.AreaRotation * Mathf.Deg2Rad)
+                AreaSizeParams = PackShapeParameters(in descriptor)
             };
+        }
+
+        private static Vector4 PackShapeParameters(in VirtualLightDescriptor descriptor)
+        {
+            if (descriptor.Type == VirtualLightType.RectangleArea) return new Vector4(descriptor.AreaSize.x, descriptor.AreaSize.y, descriptor.AreaSampleCount, descriptor.AreaRotation * Mathf.Deg2Rad);
+            if (VirtualLightMath.SupportsShape(descriptor.Type)) return new Vector4(descriptor.Type == VirtualLightType.Spot ? descriptor.SpotPenumbraSharpness : 0f, (float)descriptor.Shape, 0f, descriptor.AreaRotation * Mathf.Deg2Rad);
+            return Vector4.zero;
         }
     }
 }

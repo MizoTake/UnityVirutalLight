@@ -25,6 +25,7 @@ namespace MizoTake.VirtualLight
         {
             var direction = VirtualLightMath.NormalizeOrForward(descriptor.Direction);
             var up = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > 0.98f ? Vector3.right : Vector3.up;
+            if (descriptor.Shape == VirtualLightShape.Rectangle) VirtualLightMath.GetLightBasis(direction, descriptor.AreaRotation, out _, out up, out direction);
             var rotation = Quaternion.LookRotation(direction, up);
             return Matrix4x4.Scale(new Vector3(1f, 1f, -1f)) * Matrix4x4.TRS(descriptor.Position, rotation, Vector3.one).inverse;
         }

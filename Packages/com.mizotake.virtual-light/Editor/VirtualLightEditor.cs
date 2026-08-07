@@ -7,6 +7,7 @@ namespace MizoTake.VirtualLight.Editor
     public sealed class VirtualLightEditor : UnityEditor.Editor
     {
         private SerializedProperty type;
+        private SerializedProperty shape;
         private SerializedProperty color;
         private SerializedProperty intensity;
         private SerializedProperty range;
@@ -27,6 +28,7 @@ namespace MizoTake.VirtualLight.Editor
         private void OnEnable()
         {
             type = serializedObject.FindProperty("type");
+            shape = serializedObject.FindProperty("shape");
             color = serializedObject.FindProperty("color");
             intensity = serializedObject.FindProperty("intensity");
             range = serializedObject.FindProperty("range");
@@ -49,6 +51,7 @@ namespace MizoTake.VirtualLight.Editor
         {
             serializedObject.Update();
             EditorGUILayout.PropertyField(type);
+            if (type.hasMultipleDifferentValues || VirtualLightMath.SupportsShape((VirtualLightType)type.intValue)) EditorGUILayout.PropertyField(shape);
             EditorGUILayout.PropertyField(color);
             EditorGUILayout.PropertyField(intensity);
             if (type.hasMultipleDifferentValues || (VirtualLightType)type.intValue != VirtualLightType.Directional) EditorGUILayout.PropertyField(range);
