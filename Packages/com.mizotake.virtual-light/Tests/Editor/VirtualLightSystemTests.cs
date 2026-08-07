@@ -109,22 +109,25 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(selected, Is.EqualTo(new[] { stronger }));
         }
 
-        [Test]
-        public void SelectLights_UnsupportedDirectionalShadowIntentDoesNotChangePriority()
+        [TestCase(VirtualLightType.Point)]
+        [TestCase(VirtualLightType.Spot)]
+        [TestCase(VirtualLightType.RectangleArea)]
+        [TestCase(VirtualLightType.Directional)]
+        public void SelectLights_ShadowIntentTakesPriorityForEveryLightType(VirtualLightType type)
         {
             var system = VirtualLightSystem.Current;
             var descriptor = VirtualLightDescriptor.Default;
-            descriptor.Type = VirtualLightType.Directional;
-            descriptor.Radius = 0f;
+            descriptor.Type = type;
+            if (type == VirtualLightType.Directional) descriptor.Radius = 0f;
             descriptor.Intensity = 2f;
-            var stronger = system.Register(in descriptor);
+            system.Register(in descriptor);
             descriptor.Intensity = 1f;
             descriptor.Flags |= VirtualLightFlags.CastShadow;
-            system.Register(in descriptor);
+            var shadowed = system.Register(in descriptor);
 
             var selected = VirtualLightSystem.SelectHandlesForTests(Vector3.zero, 1);
 
-            Assert.That(selected, Is.EqualTo(new[] { stronger }));
+            Assert.That(selected, Is.EqualTo(new[] { shadowed }));
         }
 
         [Test]
@@ -306,6 +309,83 @@ namespace MizoTake.VirtualLight.Tests
             for (var row = 0; row < 4; row++) for (var column = 0; column < 4; column++) Assert.That(float.IsFinite(matrix[row, column]), Is.True);
         }
 
+        [TestCase(VirtualLightType.Point, 6)]
+        [TestCase(VirtualLightType.Spot, 1)]
+        [TestCase(VirtualLightType.RectangleArea, 2)]
+        [TestCase(VirtualLightType.Directional, 1)]
+        public void ShadowMath_UsesExpectedSliceCountForEveryLightType(VirtualLightType type, int expected)
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = type;
+
+            Assert.That(VirtualLightShadowMath.GetSliceCount(descriptor), Is.EqualTo(expected));
+        }
+
+        [TestCase(CubemapFace.PositiveX, 1f, 0f, 0f)]
+        [TestCase(CubemapFace.NegativeX, -1f, 0f, 0f)]
+        [TestCase(CubemapFace.PositiveY, 0f, 1f, 0f)]
+        [TestCase(CubemapFace.NegativeY, 0f, -1f, 0f)]
+        [TestCase(CubemapFace.PositiveZ, 0f, 0f, 1f)]
+        [TestCase(CubemapFace.NegativeZ, 0f, 0f, -1f)]
+        public void ShadowMath_PointFacesProjectPrincipalAxesToSliceCenter(CubemapFace face, float x, float y, float z)
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.Point;
+            descriptor.Position = new Vector3(3f, -2f, 5f);
+            descriptor.Radius = 12f;
+            var target = descriptor.Position + new Vector3(x, y, z) * 4f;
+
+            var matrix = GL.GetGPUProjectionMatrix(VirtualLightShadowMath.BuildPointProjection(descriptor), false) * VirtualLightShadowMath.BuildPointView(descriptor, face);
+
+            AssertProjectsToCenter(matrix, target);
+        }
+
+        [Test]
+        public void ShadowMath_AreaFrontAndBackSlicesProjectTheirAxesToCenter()
+        {
+            var descriptor = VirtualLightDescriptor.Default;
+            descriptor.Type = VirtualLightType.RectangleArea;
+            descriptor.Position = new Vector3(-2f, 3f, 4f);
+            descriptor.Direction = new Vector3(0.2f, -0.3f, 0.9f).normalized;
+            descriptor.AreaSize = new Vector2(4f, 2f);
+            descriptor.AreaRotation = 37f;
+            descriptor.Radius = 10f;
+            var projection = GL.GetGPUProjectionMatrix(VirtualLightShadowMath.BuildAreaProjection(descriptor), false);
+
+            var front = projection * VirtualLightShadowMath.BuildAreaView(descriptor, false);
+            var back = projection * VirtualLightShadowMath.BuildAreaView(descriptor, true);
+
+            AssertProjectsToCenter(front, descriptor.Position + descriptor.Direction * 3f);
+            AssertProjectsToCenter(back, descriptor.Position - descriptor.Direction * 3f);
+        }
+
+        [Test]
+        public void ShadowMath_DirectionalProjectionIsFiniteAndCenteredOnCameraWithinRange()
+        {
+            var cameraObject = new GameObject("Directional Shadow Camera");
+            try
+            {
+                var camera = cameraObject.AddComponent<Camera>();
+                camera.transform.SetPositionAndRotation(new Vector3(7f, 5f, -9f), Quaternion.Euler(12f, 28f, 0f));
+                var descriptor = VirtualLightDescriptor.Default;
+                descriptor.Type = VirtualLightType.Directional;
+                descriptor.Direction = new Vector3(0.15f, -0.9f, 0.4f).normalized;
+                descriptor.Radius = 24f;
+
+                var view = VirtualLightShadowMath.BuildDirectionalView(descriptor, camera, out var depthOrigin);
+                var matrix = GL.GetGPUProjectionMatrix(VirtualLightShadowMath.BuildDirectionalProjection(descriptor), false) * view;
+                var coverageCenter = camera.transform.position + camera.transform.forward * descriptor.Radius * 0.5f;
+
+                AssertProjectsToCenter(matrix, coverageCenter);
+                Assert.That(Vector3.Dot(coverageCenter - depthOrigin, descriptor.Direction) / descriptor.Radius, Is.EqualTo(0.5f).Within(0.001f));
+                for (var row = 0; row < 4; row++) for (var column = 0; column < 4; column++) Assert.That(float.IsFinite(matrix[row, column]), Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(cameraObject);
+            }
+        }
+
         [Test]
         public void ShadowMath_RectangleSpotViewFollowsTransformRoll()
         {
@@ -383,6 +463,14 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(Mathf.Abs((rightUv.x + leftUv.x) * 0.5f - centerUv.x), Is.LessThan(0.0001f));
             Assert.That(Mathf.Abs((upUv.y + downUv.y) * 0.5f - centerUv.y), Is.LessThan(0.0001f));
             Assert.That(Mathf.Abs(upUv.y - downUv.y), Is.GreaterThan(0.001f));
+        }
+
+        private static void AssertProjectsToCenter(Matrix4x4 matrix, Vector3 position)
+        {
+            var clip = matrix * new Vector4(position.x, position.y, position.z, 1f);
+            Assert.That(clip.w, Is.GreaterThan(0f));
+            Assert.That(clip.x / clip.w, Is.Zero.Within(0.0001f));
+            Assert.That(clip.y / clip.w, Is.Zero.Within(0.0001f));
         }
     }
 }

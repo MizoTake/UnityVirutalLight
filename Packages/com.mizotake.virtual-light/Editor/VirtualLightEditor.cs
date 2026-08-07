@@ -19,6 +19,7 @@ namespace MizoTake.VirtualLight.Editor
         private SerializedProperty twoSided;
         private SerializedProperty castShadow;
         private SerializedProperty affectOpaque;
+        private SerializedProperty goboTexture;
         private SerializedProperty staticPriority;
         private SerializedProperty priority;
         private SerializedProperty alwaysShowGizmo;
@@ -40,6 +41,7 @@ namespace MizoTake.VirtualLight.Editor
             twoSided = serializedObject.FindProperty("twoSided");
             castShadow = serializedObject.FindProperty("castShadow");
             affectOpaque = serializedObject.FindProperty("affectOpaque");
+            goboTexture = serializedObject.FindProperty("goboTexture");
             staticPriority = serializedObject.FindProperty("staticPriority");
             priority = serializedObject.FindProperty("priority");
             alwaysShowGizmo = serializedObject.FindProperty("alwaysShowGizmo");
@@ -54,7 +56,9 @@ namespace MizoTake.VirtualLight.Editor
             if (type.hasMultipleDifferentValues || VirtualLightMath.SupportsShape((VirtualLightType)type.intValue)) EditorGUILayout.PropertyField(shape);
             EditorGUILayout.PropertyField(color);
             EditorGUILayout.PropertyField(intensity);
+            EditorGUILayout.PropertyField(goboTexture, new GUIContent("Gobo / Cookie"));
             if (type.hasMultipleDifferentValues || (VirtualLightType)type.intValue != VirtualLightType.Directional) EditorGUILayout.PropertyField(range);
+            else if (castShadow.boolValue || goboTexture.objectReferenceValue != null) EditorGUILayout.PropertyField(range, new GUIContent("Shadow / Gobo Coverage"));
             if (!type.hasMultipleDifferentValues && (VirtualLightType)type.intValue == VirtualLightType.Spot)
             {
                 var minimumAngle = innerAngle.floatValue;
@@ -144,8 +148,7 @@ namespace MizoTake.VirtualLight.Editor
                 }
             }
             var selectedLight = (MizoTake.VirtualLight.VirtualLight)target;
-            if (selectedLight.CastShadow && selectedLight.Type == VirtualLightType.Spot) EditorGUILayout.HelpBox("Spot shadow maps are generated from active Virtual Light Occluder hierarchies and shared by opaque PBR lighting and beam volumes.", MessageType.Info);
-            else if (selectedLight.CastShadow) EditorGUILayout.HelpBox("Custom shadow maps currently support Spot Virtual Lights. Point, Rectangle Area, and Directional shadows remain unsupported.", MessageType.Warning);
+            if (selectedLight.CastShadow) EditorGUILayout.HelpBox("Custom shadow maps are generated from active Virtual Light Occluder hierarchies. Point uses six slices, Spot uses one, Rectangle Area uses front/back center projections, and Directional uses one camera-centered non-cascaded projection sized by Range.", MessageType.Info);
         }
     }
 }

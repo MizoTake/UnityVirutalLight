@@ -6,6 +6,8 @@ Shader "MizoTake/Virtual Light/Impact Footprint"
         _InnerRatio("Inner Cone Ratio", Range(0, 0.99)) = 0.35
         _EdgeExponent("Edge Exponent", Range(0.1, 4)) = 0.8
         _SurfaceClipDistance("Surface Clip Distance (m)", Range(0.001, 0.2)) = 0.04
+        [PerRendererData][NoScaleOffset] _VirtualLightGoboTexture("Gobo Texture", 2D) = "white" {}
+        [PerRendererData] _VirtualLightGoboEnabled("Gobo Enabled", Float) = 0
     }
 
     SubShader
@@ -28,11 +30,15 @@ Shader "MizoTake/Virtual Light/Impact Footprint"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
+            TEXTURE2D(_VirtualLightGoboTexture);
+            SAMPLER(sampler_VirtualLightGoboTexture);
+
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
                 half _InnerRatio;
                 half _EdgeExponent;
                 float _SurfaceClipDistance;
+                float _VirtualLightGoboEnabled;
             CBUFFER_END
 
             struct Attributes
@@ -70,7 +76,9 @@ Shader "MizoTake/Virtual Light/Impact Footprint"
                 clip(_SurfaceClipDistance - abs(dot(sceneWS - planeOriginWS, planeNormalWS)));
                 half innerRatio = min(saturate(_InnerRatio), 0.99h);
                 half profile = pow(saturate(1.0h - smoothstep(innerRatio, 1.0h, (half)radial)), max(_EdgeExponent, 0.1h));
-                return half4(_Color.rgb * (_Color.a * profile), 0.0h);
+                half4 goboSample = SAMPLE_TEXTURE2D(_VirtualLightGoboTexture, sampler_VirtualLightGoboTexture, input.footprintOS + 0.5);
+                half goboMask = lerp(1.0h, saturate(dot(goboSample.rgb, half3(0.2126h, 0.7152h, 0.0722h)) * goboSample.a), saturate(_VirtualLightGoboEnabled));
+                return half4(_Color.rgb * (_Color.a * profile * goboMask), 0.0h);
             }
             ENDHLSL
         }

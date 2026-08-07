@@ -60,10 +60,11 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 - **Tools > Virtual Light > Convert URP Lit Materials in Loaded Scenes**による、読み書き可能なURP Litマテリアルの変換
 - Renderer Assetを変更せず、URPのForward / Forward+から利用可能
 
-### Spot shadowとbeam表現
+### 全Light typeのshadowとGobo付きbeam表現
 
-- `VirtualLightOccluder`配下の不透明Rendererを対象にした、Spotごとのcustom shadow-map slice
-- opaque receiverとbeam volumeで同じSpot shadowを共有
+- `VirtualLightOccluder`配下の不透明Rendererを対象にした、Point 6面／Spot 1面／Rectangle Area前後2面／Directional 1面のcustom shadow-map slice
+- opaque receiverとbeam volumeで同じSpot shadowを共有し、全typeのsurface lightingへ2D Gobo/Cookieを投影
+- Spotのsurface、beam断面、impact接地面へ同じGobo maskを同期
 - `VirtualLightBeamOcclusion`によるColliderのfirst-hit判定、impact footprint、最初のhitで止めるbeam-proxy truncation
 - finite-aperture beam frustum、depth fade、安定化したsamplingを使う加算合成beam volume
 - 正面では円、斜面では有限楕円となる解析的なimpact footprint
@@ -80,10 +81,10 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 | 受光shader | `MizoTake/Virtual Light/Lit`、HLSL include、Shader Graph Custom Functionのいずれかが必要 | URP Litなど標準のLit系shaderがmain / additional lightを既定で受光 | 標準URP Lit、Terrain、Particle、独自shaderなどへVirtual Lightが自動では反映されません。対象shaderごとの組み込みが必要です |
 | 標準照明との併用 | Materialごとの**Receive Standard Lighting**で、標準照明とVirtual Lightを加算するか、Virtual Lightとemissionだけに分離するかを選択可能 | 標準lighting loop内でdirect light、shadow、baked lighting、ambient、reflection probe、SSAOなどを統合 | 既定は併用です。Virtual Lightだけを比較したいreceiverでは標準照明をOFFにできます |
 | Realtime / Mixed / BakedとGI | Virtual Light自身はruntime direct lightで、lightmap、Mixed Lighting、Light Probe / APVへの注入を行わない | Realtime / Mixed / Bakedを選び、Baked GI、lightmap、Light Probe / APVなどの標準workflowを利用可能 | 環境照明や静的sceneのbakeは標準Lightを使用する必要があります。標準照明を併用したreceiverは、標準側からのbaked lightingやprobeを引き続き受けられます |
-| shadow | Spotのみ。明示的に登録した`VirtualLightOccluder`配下のopaque RendererをlightごとのTexture2DArray sliceへ描画し、surfaceとbeamで共有 | Directional / Point / SpotのHard / Soft shadow、Directional cascade、per-light strength、bias、near plane、quality、resolutionなどを利用可能 | Virtual LightはDirectional / Point / Rectangle Area shadowに未対応で、shadow設定もproject-wide quality / bias / caster layerが中心です |
-| Cookieと照射対象の分離 | Light Cookieなし。direct lightは`Affect Opaque`、shadow casterはglobal layer maskと`VirtualLightOccluder`で制御 | Directional / Spotの2D Cookie、PointのCubemap Cookie、Culling Mask、Rendering Layers、Custom Shadow Layersを利用可能 | 模様投影、per-lightのlight linking、照明対象とshadow対象の細かな分離は標準Lightが適しています |
+| shadow | Point 6面、Spot 1面、Rectangle Area前後2面、Directionalのcamera中心1面をTexture2DArrayへ描画。Spotはsurfaceとbeamで共有 | Directional / Point / SpotのHard / Soft shadow、Directional cascade、per-light strength、bias、near plane、quality、resolutionなどを利用可能 | Virtual LightのArea shadowは中心投影近似、Directionalは非cascadeです。shadow設定もproject-wide quality / bias / caster layerが中心です |
+| Cookieと照射対象の分離 | 全typeへ2D Gobo/Cookieを設定可能。Pointはequirectangular、Spotはperspective、Directional/Areaはorthographic投影。Spotはbeam/impactも同じmaskを使用 | Directional / Spotの2D Cookie、PointのCubemap Cookie、Culling Mask、Rendering Layers、Custom Shadow Layersを利用可能 | Virtual LightのPointはCubemapではなく2D展開です。per-lightのlight linkingや照明対象とshadow対象の細かな分離は標準Lightが適しています |
 | transparent | 付属Lit shaderはtransparent surfaceのrender stateを持ち、Virtual Lightを加算可能 | URP Litのtransparent surfaceが標準lighting loopを利用 | Virtual Lightはtransparent専用の透過lighting modelを持たず、alpha clip / transparent casterのcustom shadowとtransparent shadow transmissionは保証対象外です |
-| beamとimpact | Spotにfinite-aperture beam、single-scattering近似、Collider first-hit、斜面上の楕円impact footprintを追加可能 | 標準Light component単体は空気中の可視beamやimpact meshを生成しない | moving head、laser、stage beamの一体制御はVirtual Lightの特徴です。ただしRectangle Spotでもbeam / impact形状は円形です |
+| beamとimpact | Spotにfinite-aperture beam、single-scattering近似、Collider first-hit、斜面上の楕円impact footprint、surfaceと共有するGobo maskを追加可能 | 標準Light component単体は空気中の可視beamやimpact meshを生成しない | moving head、laser、stage beamの一体制御はVirtual Lightの特徴です。proxy boundsは円形でもGoboで表示断面を変更できます |
 | 色と強度 | HDR colorと相対的なIntensityを使用。Rectangle AreaはIntensityをemitted radianceとして扱い、面積を増やすと総出力も増加 | Color、Color Temperature、Intensity、Indirect Multiplierを標準Inspectorで設定 | 変換時は色温度をRGBへ反映しますが、同じIntensity値による見た目や測光的な一致は保証しません |
 | 対応範囲 | Unity 6.0、URP 17.0.4、Shader Model 4.5を対象。Forward / Forward+で利用 | Unity標準機能としてrendering pipeline、shader、baking、editor toolingと統合 | Virtual LightはBuilt-in Render Pipeline / HDRPのdrop-in代替ではなく、URP向けの専用実装です |
 
@@ -93,22 +94,24 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 - Point / SpotのtypeとCircle / Rectangle shapeを分離し、標準Pointにはないbox境界、標準Spotとは異なるsquare-pyramid境界をTransform roll込みで制御できる
 - 標準URPではBaked固定のRectangle Areaを、sampled approximationとしてruntimeに移動・変更できる
 - 1つのSpotについてsurface lighting、custom shadow、visible beam、impactを同じTransformと強度から同期できる
+- 2D Gobo/Cookieをsurface lightingへ投影し、Spotではbeam断面とimpact接地面にも同じmaskを同期できる
+- tileごとのlight indexを32灯/uintのbitmaskへ圧縮し、1 tile / 64-thread groupで並列生成する
 - 既存の環境照明を標準Lightへ任せたままVirtual Lightを追加でき、receiver単位で標準照明の有無を比較できる
 - Renderer AssetへRenderer Featureを追加せず、`RenderPipelineManager.beginCameraRendering`からglobal GPU resourceを更新する
 
 ### デメリットと採用時の注意
 
 - 標準URP Litへ自動では反映されないため、material変換またはshader実装が必要です。対応していないshaderはVirtual Lightを受光しません
-- `UnityEngine.Light`型の参照を維持できず、Cookie、bake mode、culling / rendering layer、shadow詳細も変換できないため、既存sceneを完全自動移行できません
-- 標準LightのDirectional / Point shadow、cascade、per-light shadow品質、Baked GI、Light Probe / APV、Cookie、Rendering Layersが必要な用途では置き換えになりません
-- custom Spot shadowではoccluder hierarchyを明示的に登録する必要があり、alpha clip / transparent caster、透明透過、Point / Directional / Area shadowは現在の保証範囲外です
-- light数に固定上限はありませんが、light buffer、tile index、shadow slice、shadow caster draw、VRAM、GPU時間が灯数と解像度に応じて増えます。Unity標準Lightより常に高速という測定結果はありません
+- `UnityEngine.Light`型の参照を維持できず、Cubemap Cookie、bake mode、culling / rendering layer、shadow詳細も変換できないため、既存sceneを完全自動移行できません
+- 標準LightのDirectional cascade、per-light shadow品質、Baked GI、Light Probe / APV、Cubemap Cookie、Rendering Layersが必要な用途では置き換えになりません
+- custom shadowではoccluder hierarchyを明示的に登録する必要があり、alpha clip / transparent caster、透明透過、Area sampleごとのsoft penumbraは現在の保証範囲外です
+- light数に固定上限はありませんが、light buffer、tile bitmask、shadow slice、shadow caster draw、VRAM、GPU時間が灯数と解像度に応じて増えます。Unity標準Lightより常に高速という測定結果はありません
 - Rectangle Areaは有限sample近似、beamはhomogeneous single-scattering近似です。analytic LTC、IES、barn door、multiple scattering、完全なvolumetric penumbraは実装していません
 - 対象がUnity 6.0 / URP 17.0.4に限定され、Built-in Render PipelineやHDRP向けの互換backendはありません
 
 ### 推奨する使い分け
 
-- 環境の主照明、太陽、bake、GI、probe、Cookie、厳密なlayer分け、Directional / Point shadowにはUnity標準Lightを使用します
+- 環境の主照明、太陽、bake、GI、probe、Cubemap Cookie、厳密なlayer分け、cascaded Directional shadowにはUnity標準Lightを使用します
 - 多数の動的な補助灯、矩形Point / Spot、runtime Rectangle Area、stage beam / impact演出にはVirtual Lightを使用します
 - 一般的なsceneでは標準Lightを基礎照明、Virtual Lightを演出・補助照明として併用し、特殊receiverまたは比較sceneだけ**Receive Standard Lighting**をOFFにする構成を推奨します
 
@@ -126,14 +129,14 @@ https://github.com/MizoTake/UnityVirutalLight.git?path=/Packages/com.mizotake.vi
 
 **Tools > Virtual Light > Convert Light Components in Current Stage**は、通常のScene編集では読み込まれているScene内、Prefab StageではそのPrefab内の`Light`を置換します。**Convert Selected Light Components**は、選択GameObject自身に付いている`Light`だけを置換します。Light Inspectorのcontext menuから1件ずつ実行することもできます。
 
-Directional、Point、cone / pyramid Spot、Rectangleのtype、shape、color、color temperature、intensity、enabled、適用可能なrange、Spot angle、Rectangle size、shadow有効状態を対応する値へ引き継ぎます。PyramidはSpot + Rectangleへ変換します。Disc、Box、Tube、既存`VirtualLight`と競合するもの、未知の`Light`必須componentを持つものは元の`Light`を残してスキップします。`Light`型の参照、Cookie、bake設定、culling／rendering layer、shadow詳細は引き継げません。Directional／Point／Rectangle shadowは未対応で、Spot shadowには`VirtualLightOccluder`が必要です。変換はUndo可能ですが、SceneやPrefabは自動保存しません。
+Directional、Point、cone / pyramid Spot、Rectangleのtype、shape、color、color temperature、intensity、enabled、適用可能なrange、Spot angle、Rectangle size、shadow有効状態、利用可能な2D Cookieを対応する値へ引き継ぎます。PyramidはSpot + Rectangleへ変換します。Disc、Box、Tube、既存`VirtualLight`と競合するもの、未知の`Light`必須componentを持つものは元の`Light`を残してスキップします。`Light`型の参照、Cubemap Cookie、bake設定、culling／rendering layer、shadow詳細は引き継げません。全Light typeのcustom shadowには`VirtualLightOccluder`が必要です。変換はUndo可能ですが、SceneやPrefabは自動保存しません。
 
 ## サンプル
 
 | 種類 | 場所 | 内容 |
 | --- | --- | --- |
 | Core Feature Matrix | Package Managerの**Virtual Light Core Feature Matrix** | Directional、Circle/Rectangle Point、Circle/Rectangle Spot、Rectangle Areaをラベルと境界guide付きで比較するscript-freeの静的scene |
-| Feature Lab | `Assets/VirtualLightExamples/Advanced` | Point / SpotのCircle・Rectangle runtime切替、PBR比較、Spot shadow、first-hit hard-stop beam / impactを確認 |
+| Feature Lab | `Assets/VirtualLightExamples/Advanced` | Point / SpotのCircle・Rectangle runtime切替、PBR比較、all-type shadow、Gobo付きfirst-hit hard-stop beam / impactを確認 |
 | Area / Arena | `Assets/VirtualLightExamples/Advanced` | Rectangle Areaの方向性、最初のColliderで止まる複数beam、6台のmoving head演出を確認 |
 | Performance | `Assets/VirtualLightExamples/PerformanceBenchmark` | tiled/direct経路、light数、shadow数、CPU/GPU負荷を計測 |
 

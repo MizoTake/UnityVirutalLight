@@ -101,6 +101,7 @@ namespace MizoTake.VirtualLight
         public float AreaRotation;
         public float OcclusionDistance;
         public bool TwoSided;
+        public Texture2D GoboTexture;
         public VirtualLightType Type;
         public VirtualLightShape Shape;
         public VirtualLightFlags Flags;
@@ -161,7 +162,7 @@ namespace MizoTake.VirtualLight
 
         public bool Equals(VirtualLightDescriptor other)
         {
-            return Position == other.Position && Direction == other.Direction && LinearColor == other.LinearColor && Intensity.Equals(other.Intensity) && Radius.Equals(other.Radius) && InnerConeAngle.Equals(other.InnerConeAngle) && OuterConeAngle.Equals(other.OuterConeAngle) && SpotPenumbraSharpness.Equals(other.SpotPenumbraSharpness) && AreaSize == other.AreaSize && AreaSampleCount == other.AreaSampleCount && AreaRotation.Equals(other.AreaRotation) && OcclusionDistance.Equals(other.OcclusionDistance) && TwoSided == other.TwoSided && Type == other.Type && Shape == other.Shape && Flags == other.Flags && Priority == other.Priority;
+            return Position == other.Position && Direction == other.Direction && LinearColor == other.LinearColor && Intensity.Equals(other.Intensity) && Radius.Equals(other.Radius) && InnerConeAngle.Equals(other.InnerConeAngle) && OuterConeAngle.Equals(other.OuterConeAngle) && SpotPenumbraSharpness.Equals(other.SpotPenumbraSharpness) && AreaSize == other.AreaSize && AreaSampleCount == other.AreaSampleCount && AreaRotation.Equals(other.AreaRotation) && OcclusionDistance.Equals(other.OcclusionDistance) && TwoSided == other.TwoSided && GoboTexture == other.GoboTexture && Type == other.Type && Shape == other.Shape && Flags == other.Flags && Priority == other.Priority;
         }
     }
 

@@ -23,9 +23,9 @@ The receiver and environment materials use `MizoTake/Virtual Light/Lit` with **R
 
 The repository development project keeps specialized examples outside the distributable UPM sample:
 
-- `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity`: runtime mutation, PBR response, Spot shadow, beam volume, first-hit occlusion, and impact footprint workflows.
+- `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity`: runtime mutation, PBR response, custom shadows, Gobo-masked beam/impact, first-hit occlusion, and impact footprint workflows.
 - `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightAreaDirectionSample.unity`: Rectangle Area forward/back-face and Two Sided comparison.
 - `Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightArenaSample.unity`: multiple moving Circle Spot beams and dynamically allocated shadow slices.
 - `Assets/VirtualLightExamples/PerformanceBenchmark`: tiled/direct evaluation, light-count scaling, shadow cost, and performance reports.
 
-Rectangle Spot direct lighting and custom shadow projection can be square, but the optional beam and impact visuals remain circular. Directional, Point, and Rectangle Area shadows are not currently supported.
+Rectangle Spot direct lighting and custom shadow projection can be square. Beam and impact proxy bounds remain circular, while an assigned Gobo/2D Cookie masks their visible cross-section and the opaque receiver with the same texture. Directional uses a camera-centered non-cascaded shadow, Point uses six faces, and Rectangle Area uses a center-projection approximation.

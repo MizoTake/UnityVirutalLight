@@ -202,6 +202,11 @@ namespace MizoTake.VirtualLight.Editor
                 target.OuterAngle = source.spotAngle;
             }
             if (type == VirtualLightType.RectangleArea) target.AreaSize = source.areaSize;
+            if (source.cookie is Texture2D goboTexture)
+            {
+                target.GoboTexture = goboTexture;
+                if (type == VirtualLightType.Directional) target.Range = source.cookieSize;
+            }
             target.CastShadow = source.shadows != LightShadows.None;
             target.enabled = sourceEnabled;
             if (PrefabUtility.IsPartOfPrefabInstance(target)) PrefabUtility.RecordPrefabInstancePropertyModifications(target);

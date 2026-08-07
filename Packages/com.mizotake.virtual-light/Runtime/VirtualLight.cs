@@ -20,6 +20,7 @@ namespace MizoTake.VirtualLight
         [SerializeField] private bool twoSided;
         [SerializeField] private bool castShadow;
         [SerializeField] private bool affectOpaque = true;
+        [SerializeField, Tooltip("Masks this light with a 2D grayscale texture. Spot uses perspective projection, Point uses equirectangular projection, and Directional or Rectangle Area use orthographic projection.")] private Texture2D goboTexture;
         [SerializeField, HideInInspector] private float occlusionDistance = -1f;
         [SerializeField] private bool staticPriority;
         [SerializeField] private int priority;
@@ -44,6 +45,7 @@ namespace MizoTake.VirtualLight
         public bool TwoSided { get => twoSided; set { twoSided = value; Synchronize(); } }
         public bool CastShadow { get => castShadow; set { castShadow = value; Synchronize(); } }
         public bool AffectOpaque { get => affectOpaque; set { if (affectOpaque == value) return; affectOpaque = value; Synchronize(); } }
+        public Texture2D GoboTexture { get => goboTexture; set { if (goboTexture == value) return; goboTexture = value; Synchronize(); } }
         public float OcclusionDistance { get => occlusionDistance; set { occlusionDistance = float.IsFinite(value) ? Mathf.Clamp(value, -1f, range) : -1f; Synchronize(); } }
         public int Priority { get => priority; set { priority = value; Synchronize(); } }
         public bool AlwaysShowGizmo => alwaysShowGizmo;
@@ -74,6 +76,7 @@ namespace MizoTake.VirtualLight
                     AreaRotation = CalculateAreaRotation(),
                     OcclusionDistance = occlusionDistance,
                     TwoSided = twoSided,
+                    GoboTexture = goboTexture,
                     Type = type,
                     Shape = shape,
                     Flags = flags,

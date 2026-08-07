@@ -16,6 +16,8 @@ namespace MizoTake.VirtualLight
         private static readonly ProfilerMarker PhysicsQueryMarker = new ProfilerMarker("VirtualLight.BeamOcclusion.PhysicsQuery");
         private static readonly ProfilerMarker VisualUpdateMarker = new ProfilerMarker("VirtualLight.BeamOcclusion.UpdateVisuals");
         private static readonly int ImpactInnerRatioId = Shader.PropertyToID("_InnerRatio");
+        private static readonly int GoboTextureId = Shader.PropertyToID("_VirtualLightGoboTexture");
+        private static readonly int GoboEnabledId = Shader.PropertyToID("_VirtualLightGoboEnabled");
         [SerializeField] private Transform beamVisual;
         [SerializeField] private Transform impactVisual;
         [SerializeField] private LayerMask occluderLayers = ~0;
@@ -37,10 +39,11 @@ namespace MizoTake.VirtualLight
         private bool impactRendererResolved;
         private RaycastHit lastImpactHit;
         private float appliedImpactInnerRatio = -1f;
+        private Texture2D appliedImpactGoboTexture;
         private double nextAutomaticRefreshTime;
 
         public Transform BeamVisual { get => beamVisual; set { beamVisual = value; EnsureBeamVolumeMarker(); UpdateVisuals(CurrentVisibleDistance, IsBlocked, lastImpactHit); } }
-        public Transform ImpactVisual { get => impactVisual; set { impactVisual = value; impactRenderer = null; impactRendererResolved = false; appliedImpactInnerRatio = -1f; UpdateVisuals(CurrentVisibleDistance, IsBlocked, lastImpactHit); } }
+        public Transform ImpactVisual { get => impactVisual; set { impactVisual = value; impactRenderer = null; impactRendererResolved = false; appliedImpactInnerRatio = -1f; appliedImpactGoboTexture = null; UpdateVisuals(CurrentVisibleDistance, IsBlocked, lastImpactHit); } }
         public LayerMask OccluderLayers { get => occluderLayers; set => occluderLayers = value; }
         public bool RequireOccluderMarker { get => requireOccluderMarker; set => requireOccluderMarker = value; }
         public bool FitVisualToSpotCone { get => fitVisualToSpotCone; set { fitVisualToSpotCone = value; UpdateVisuals(CurrentVisibleDistance, IsBlocked, lastImpactHit); } }
@@ -62,6 +65,7 @@ namespace MizoTake.VirtualLight
             impactRenderer = null;
             impactRendererResolved = false;
             appliedImpactInnerRatio = -1f;
+            appliedImpactGoboTexture = null;
             NormalizeValues();
             EnsureBeamVolumeMarker();
             if (beamVisual != null) beamVisual.gameObject.SetActive(true);
@@ -261,15 +265,19 @@ namespace MizoTake.VirtualLight
                 impactRendererResolved = true;
             }
             var material = impactRenderer != null ? impactRenderer.sharedMaterial : null;
-            if (material == null || !material.HasProperty(ImpactInnerRatioId) || virtualLight == null) return;
+            if (material == null || virtualLight == null) return;
             var outerRadius = VirtualLightMath.EvaluateBeamRadius(1f, virtualLight.OuterAngle);
             var innerRatio = outerRadius > 0.000001f ? Mathf.Clamp01(VirtualLightMath.EvaluateBeamRadius(1f, virtualLight.InnerAngle) / outerRadius) : 0f;
-            if (Mathf.Abs(appliedImpactInnerRatio - innerRatio) <= 0.0001f) return;
+            var goboTexture = virtualLight.GoboTexture;
+            if (Mathf.Abs(appliedImpactInnerRatio - innerRatio) <= 0.0001f && appliedImpactGoboTexture == goboTexture) return;
             impactPropertyBlock ??= new MaterialPropertyBlock();
             impactRenderer.GetPropertyBlock(impactPropertyBlock);
-            impactPropertyBlock.SetFloat(ImpactInnerRatioId, innerRatio);
+            if (material.HasProperty(ImpactInnerRatioId)) impactPropertyBlock.SetFloat(ImpactInnerRatioId, innerRatio);
+            impactPropertyBlock.SetTexture(GoboTextureId, goboTexture != null ? goboTexture : Texture2D.whiteTexture);
+            impactPropertyBlock.SetFloat(GoboEnabledId, goboTexture != null ? 1f : 0f);
             impactRenderer.SetPropertyBlock(impactPropertyBlock);
             appliedImpactInnerRatio = innerRatio;
+            appliedImpactGoboTexture = goboTexture;
         }
 
         private void ScheduleNextAutomaticRefresh()

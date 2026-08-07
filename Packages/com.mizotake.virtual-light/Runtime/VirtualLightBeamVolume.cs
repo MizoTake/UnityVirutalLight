@@ -11,6 +11,8 @@ namespace MizoTake.VirtualLight
         private static readonly int ShadowSliceId = Shader.PropertyToID("_VirtualLightShadowSlice");
         private static readonly int ScatteringIntensityId = Shader.PropertyToID("_ScatteringIntensity");
         private static readonly int SourceRadiusId = Shader.PropertyToID("_SourceRadius");
+        private static readonly int GoboTextureId = Shader.PropertyToID("_VirtualLightGoboTexture");
+        private static readonly int GoboEnabledId = Shader.PropertyToID("_VirtualLightGoboEnabled");
         private static readonly HashSet<VirtualLightBeamVolume> Active = new HashSet<VirtualLightBeamVolume>();
         [SerializeField, Min(0.0001f)] private float referenceIntensity;
         private VirtualLight virtualLight;
@@ -104,6 +106,9 @@ namespace MizoTake.VirtualLight
             var intensityScale = virtualLight != null ? virtualLight.Intensity / Mathf.Max(referenceIntensity, 0.0001f) : 0f;
             var material = beamRenderer.sharedMaterial;
             if (material != null && material.HasProperty(ScatteringIntensityId)) propertyBlock.SetFloat(ScatteringIntensityId, material.GetFloat(ScatteringIntensityId) * Mathf.Max(0f, VirtualLightMath.FiniteOrZero(intensityScale)));
+            var goboTexture = virtualLight != null ? virtualLight.GoboTexture : null;
+            propertyBlock.SetTexture(GoboTextureId, goboTexture != null ? goboTexture : Texture2D.whiteTexture);
+            propertyBlock.SetFloat(GoboEnabledId, goboTexture != null ? 1f : 0f);
             beamRenderer.SetPropertyBlock(propertyBlock);
         }
     }

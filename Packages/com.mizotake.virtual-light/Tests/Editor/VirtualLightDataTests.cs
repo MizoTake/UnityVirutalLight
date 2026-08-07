@@ -195,6 +195,209 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [Test]
+        public void Inspector_ExposesGoboTexture()
+        {
+            var gameObject = new GameObject("Virtual Light");
+            UnityEditor.Editor editor = null;
+            try
+            {
+                var virtualLight = gameObject.AddComponent<VirtualLight>();
+                editor = UnityEditor.Editor.CreateEditor(virtualLight);
+                var field = editor.GetType().GetField("goboTexture", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                Assert.That(field, Is.Not.Null);
+                Assert.That(field.GetValue(editor), Is.Not.Null);
+            }
+            finally
+            {
+                if (editor != null) Object.DestroyImmediate(editor);
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void Component_GoboTextureSynchronizesToDescriptor()
+        {
+            var gameObject = new GameObject("Virtual Light Gobo");
+            var texture = new Texture2D(8, 8, TextureFormat.RGBA32, false, true);
+            try
+            {
+                var virtualLight = gameObject.AddComponent<VirtualLight>();
+                virtualLight.GoboTexture = texture;
+
+                Assert.That(virtualLight.GoboTexture, Is.SameAs(texture));
+                Assert.That(virtualLight.Descriptor.GoboTexture, Is.SameAs(texture));
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void GoboArray_BindsFallbackGpuResourcesAtOneHundredTwentyEightPixels()
+        {
+            VirtualLightGoboArray.EnsureBindings();
+
+            Assert.That(VirtualLightGoboArray.HasBindings, Is.True);
+            Assert.That(VirtualLightGoboArray.HasTextureBinding, Is.True);
+            Assert.That(VirtualLightGoboArray.Resolution, Is.EqualTo(128));
+        }
+
+        [Test]
+        public void GoboArray_UnmaskedFallbackAllocatesOneParameterForEverySelectedLight()
+        {
+            VirtualLightGoboArray.BindUnmasked(65);
+            var parametersField = typeof(VirtualLightGoboArray).GetField("parameters", BindingFlags.Static | BindingFlags.NonPublic);
+            var parameterCapacityField = typeof(VirtualLightGoboArray).GetField("parameterCapacity", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.That(parametersField, Is.Not.Null);
+            Assert.That(parameterCapacityField, Is.Not.Null);
+            var fallbackParameters = (Vector4[])parametersField.GetValue(null);
+
+            Assert.That((int)parameterCapacityField.GetValue(null), Is.GreaterThanOrEqualTo(65));
+            Assert.That(fallbackParameters.Take(65).All(parameter => parameter.x == -1f), Is.True);
+        }
+
+        [Test]
+        public void GoboArray_UploadDeduplicatesTexturesAndLeavesMissingSlicesUnassigned()
+        {
+            var first = new Texture2D(8, 16, TextureFormat.RGBA32, false, true);
+            var second = new Texture2D(256, 64, TextureFormat.RGBA32, false, true);
+            try
+            {
+                first.SetPixels(Enumerable.Repeat(Color.red, first.width * first.height).ToArray());
+                first.Apply(false, false);
+                second.SetPixels(Enumerable.Repeat(Color.green, second.width * second.height).ToArray());
+                second.Apply(false, false);
+                var descriptors = new[] { VirtualLightDescriptor.Default, VirtualLightDescriptor.Default, VirtualLightDescriptor.Default, VirtualLightDescriptor.Default };
+                descriptors[0].GoboTexture = first;
+                descriptors[1].GoboTexture = first;
+                descriptors[2].GoboTexture = second;
+
+                VirtualLightGoboArray.Upload(descriptors, descriptors.Length);
+                var parametersField = typeof(VirtualLightGoboArray).GetField("parameters", BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(parametersField, Is.Not.Null);
+                var uploadedParameters = (Vector4[])parametersField.GetValue(null);
+
+                Assert.That(uploadedParameters[0].x, Is.EqualTo(0f));
+                Assert.That(uploadedParameters[1].x, Is.EqualTo(0f));
+                Assert.That(uploadedParameters[2].x, Is.EqualTo(1f));
+                Assert.That(uploadedParameters[3].x, Is.EqualTo(-1f));
+                Assert.That(VirtualLightGoboArray.Resolution, Is.EqualTo(128));
+                var textureArrayField = typeof(VirtualLightGoboArray).GetField("goboTextures", BindingFlags.Static | BindingFlags.NonPublic);
+                Assert.That(textureArrayField, Is.Not.Null);
+                var textureArray = (RenderTexture)textureArrayField.GetValue(null);
+                Assert.That(textureArray.width, Is.EqualTo(128));
+                Assert.That(textureArray.height, Is.EqualTo(128));
+                Assert.That(textureArray.volumeDepth, Is.GreaterThanOrEqualTo(2));
+                var previousActive = RenderTexture.active;
+                var readback = new Texture2D(1, 1, TextureFormat.RGBA32, false, true);
+                try
+                {
+                    Graphics.SetRenderTarget(textureArray, 0, CubemapFace.Unknown, 0);
+                    readback.ReadPixels(new Rect(64f, 64f, 1f, 1f), 0, 0);
+                    readback.Apply(false, false);
+                    Assert.That(readback.GetPixel(0, 0).r, Is.GreaterThan(0.9f));
+                    Graphics.SetRenderTarget(textureArray, 0, CubemapFace.Unknown, 1);
+                    readback.ReadPixels(new Rect(64f, 64f, 1f, 1f), 0, 0);
+                    readback.Apply(false, false);
+                    Assert.That(readback.GetPixel(0, 0).g, Is.GreaterThan(0.9f));
+                }
+                finally
+                {
+                    RenderTexture.active = previousActive;
+                    Object.DestroyImmediate(readback);
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+            }
+        }
+
+        [Test]
+        public void BeamAndImpactShaders_ExposePerRendererGoboProperties()
+        {
+            var beamShader = Shader.Find("MizoTake/Virtual Light/Beam");
+            var impactShader = Shader.Find("MizoTake/Virtual Light/Impact Footprint");
+            Assert.That(beamShader, Is.Not.Null);
+            Assert.That(impactShader, Is.Not.Null);
+            var beamMaterial = new Material(beamShader);
+            var impactMaterial = new Material(impactShader);
+            try
+            {
+                Assert.That(beamMaterial.HasProperty("_VirtualLightGoboTexture"), Is.True);
+                Assert.That(beamMaterial.HasProperty("_VirtualLightGoboEnabled"), Is.True);
+                Assert.That(impactMaterial.HasProperty("_VirtualLightGoboTexture"), Is.True);
+                Assert.That(impactMaterial.HasProperty("_VirtualLightGoboEnabled"), Is.True);
+            }
+            finally
+            {
+                Object.DestroyImmediate(beamMaterial);
+                Object.DestroyImmediate(impactMaterial);
+            }
+        }
+
+        [Test]
+        public void BeamAndImpactComponents_PropagateTheOwningLightsGoboTexture()
+        {
+            var lightObject = new GameObject("Virtual Light Gobo Visuals");
+            var beamObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var impactObject = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            var texture = new Texture2D(8, 8, TextureFormat.RGBA32, false, true);
+            var beamMaterial = new Material(Shader.Find("MizoTake/Virtual Light/Beam"));
+            var impactMaterial = new Material(Shader.Find("MizoTake/Virtual Light/Impact Footprint"));
+            try
+            {
+                beamObject.transform.SetParent(lightObject.transform, false);
+                impactObject.transform.SetParent(lightObject.transform, false);
+                beamObject.GetComponent<Renderer>().sharedMaterial = beamMaterial;
+                impactObject.GetComponent<Renderer>().sharedMaterial = impactMaterial;
+                var virtualLight = lightObject.AddComponent<VirtualLight>();
+                virtualLight.Type = VirtualLightType.Spot;
+                virtualLight.GoboTexture = texture;
+                var beamVolume = beamObject.AddComponent<VirtualLightBeamVolume>();
+                VirtualLightBeamVolume.ApplyShadowSlices(new[] { virtualLight.Handle }, new[] { VirtualLightGpu.FromDescriptor(virtualLight.Descriptor) }, 1);
+                var beamBlock = new MaterialPropertyBlock();
+                beamObject.GetComponent<Renderer>().GetPropertyBlock(beamBlock);
+
+                var beamOcclusion = lightObject.AddComponent<VirtualLightBeamOcclusion>();
+                beamOcclusion.ImpactVisual = impactObject.transform;
+                var updateImpactProperties = typeof(VirtualLightBeamOcclusion).GetMethod("UpdateImpactMaterialProperties", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.That(updateImpactProperties, Is.Not.Null);
+                updateImpactProperties.Invoke(beamOcclusion, null);
+                var impactBlock = new MaterialPropertyBlock();
+                impactObject.GetComponent<Renderer>().GetPropertyBlock(impactBlock);
+
+                Assert.That(beamBlock.GetTexture(Shader.PropertyToID("_VirtualLightGoboTexture")), Is.SameAs(texture));
+                Assert.That(beamBlock.GetFloat(Shader.PropertyToID("_VirtualLightGoboEnabled")), Is.EqualTo(1f));
+                Assert.That(impactBlock.GetTexture(Shader.PropertyToID("_VirtualLightGoboTexture")), Is.SameAs(texture));
+                Assert.That(impactBlock.GetFloat(Shader.PropertyToID("_VirtualLightGoboEnabled")), Is.EqualTo(1f));
+                Assert.That(beamVolume, Is.Not.Null);
+
+                virtualLight.GoboTexture = null;
+                VirtualLightBeamVolume.ApplyShadowSlices(new[] { virtualLight.Handle }, new[] { VirtualLightGpu.FromDescriptor(virtualLight.Descriptor) }, 1);
+                updateImpactProperties.Invoke(beamOcclusion, null);
+                beamObject.GetComponent<Renderer>().GetPropertyBlock(beamBlock);
+                impactObject.GetComponent<Renderer>().GetPropertyBlock(impactBlock);
+
+                Assert.That(beamBlock.GetTexture(Shader.PropertyToID("_VirtualLightGoboTexture")), Is.SameAs(Texture2D.whiteTexture));
+                Assert.That(beamBlock.GetFloat(Shader.PropertyToID("_VirtualLightGoboEnabled")), Is.Zero);
+                Assert.That(impactBlock.GetTexture(Shader.PropertyToID("_VirtualLightGoboTexture")), Is.SameAs(Texture2D.whiteTexture));
+                Assert.That(impactBlock.GetFloat(Shader.PropertyToID("_VirtualLightGoboEnabled")), Is.Zero);
+            }
+            finally
+            {
+                Object.DestroyImmediate(beamMaterial);
+                Object.DestroyImmediate(impactMaterial);
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(lightObject);
+            }
+        }
+
+        [Test]
         public void Sanitize_RepairsInvalidValuesAndConeOrder()
         {
             var descriptor = new VirtualLightDescriptor
@@ -385,7 +588,7 @@ namespace MizoTake.VirtualLight.Tests
             Assert.That(packageInfo, Is.Not.Null);
             var readme = File.ReadAllText(Path.Combine(packageInfo.resolvedPath, "Samples~", "Basic", "README.md"));
 
-            foreach (var featureName in new[] { "Directional", "Circle Point", "Rectangle Point", "Circle Spot", "Rectangle Spot", "Rectangle Area", "Spot shadow", "beam volume", "performance" }) StringAssert.Contains(featureName, readme);
+            foreach (var featureName in new[] { "Directional", "Circle Point", "Rectangle Point", "Circle Spot", "Rectangle Spot", "Rectangle Area", "custom shadows", "Gobo", "beam/impact", "performance" }) StringAssert.Contains(featureName, readme);
         }
 
         [Test]

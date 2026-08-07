@@ -346,6 +346,225 @@ namespace MizoTake.VirtualLight.Tests
         }
 
         [UnityTest]
+        public IEnumerator CameraRender_SpotGoboMasksOpaqueReceiverWithUploadedOneHundredTwentyEightPixelTexture()
+        {
+            VirtualLightSystem.ResetForTests();
+            var cameraObject = new GameObject("Virtual Light Gobo Render Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -4f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 1.5f;
+            var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 3f;
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_ReceiveStandardLighting", 0f);
+            material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+            receiver.GetComponent<Renderer>().sharedMaterial = material;
+            var lightObject = new GameObject("Virtual Light Gobo Render Test Spot");
+            lightObject.transform.position = new Vector3(0f, 0f, -2f);
+            var virtualLight = lightObject.AddComponent<VirtualLight>();
+            virtualLight.Type = VirtualLightType.Spot;
+            virtualLight.Color = Color.red;
+            virtualLight.Intensity = 100f;
+            virtualLight.Range = 5f;
+            virtualLight.InnerAngle = 70f;
+            virtualLight.OuterAngle = 80f;
+            var gobo = CreateHalfMaskGobo128();
+            virtualLight.GoboTexture = gobo;
+            yield return null;
+            var whiteScreen = camera.WorldToScreenPoint(new Vector3(-0.5f, 0f, 0f));
+            var blackScreen = camera.WorldToScreenPoint(new Vector3(0.5f, 0f, 0f));
+            var whiteRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(whiteScreen.x), Mathf.RoundToInt(whiteScreen.y));
+            var blackRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(blackScreen.x), Mathf.RoundToInt(blackScreen.y));
+
+            Assert.That(whiteRegion.r, Is.GreaterThan(0.05f));
+            Assert.That(blackRegion.r, Is.LessThan(whiteRegion.r * 0.1f));
+            Object.Destroy(gobo);
+            Object.Destroy(lightObject);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
+        public IEnumerator CameraRender_SpotGoboMasksBeamCrossSection()
+        {
+            var cameraObject = new GameObject("Virtual Light Gobo Beam Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -4f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 1f;
+            camera.depthTextureMode = DepthTextureMode.Depth;
+            var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
+            camera.targetTexture = renderTexture;
+            var material = new Material(Shader.Find("MizoTake/Virtual Light/Beam"));
+            material.SetColor("_Color", Color.white);
+            material.SetFloat("_Density", 0.12f);
+            material.SetFloat("_SingleScatteringAlbedo", 1f);
+            material.SetFloat("_ScatteringIntensity", 20f);
+            material.SetFloat("_DistanceFalloff", 0f);
+            material.SetFloat("_SourceFade", 0.001f);
+            material.SetFloat("_EndFade", 0.001f);
+            material.SetFloat("_NoiseAmount", 0f);
+            material.SetFloat("_Anisotropy", 0f);
+            var gobo = CreateHalfMaskGobo128();
+            material.SetTexture("_VirtualLightGoboTexture", gobo);
+            material.SetFloat("_VirtualLightGoboEnabled", 1f);
+            var beam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            beam.name = "Gobo Masked Beam";
+            beam.transform.localScale = new Vector3(1.2f, 1.2f, 2f);
+            beam.GetComponent<Renderer>().sharedMaterial = material;
+            Object.Destroy(beam.GetComponent<Collider>());
+            yield return null;
+            var whiteScreen = camera.WorldToScreenPoint(new Vector3(-0.2f, 0f, 0f));
+            var blackScreen = camera.WorldToScreenPoint(new Vector3(0.2f, 0f, 0f));
+            var whiteRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(whiteScreen.x), Mathf.RoundToInt(whiteScreen.y));
+            var blackRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(blackScreen.x), Mathf.RoundToInt(blackScreen.y));
+
+            Assert.That(whiteRegion.r, Is.GreaterThan(0.001f));
+            Assert.That(blackRegion.r, Is.LessThan(whiteRegion.r * 0.1f));
+            Object.Destroy(beam);
+            Object.Destroy(cameraObject);
+            Object.Destroy(material);
+            Object.Destroy(gobo);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CameraRender_SpotGoboMasksImpactFootprintOnReceiver()
+        {
+            var cameraObject = new GameObject("Virtual Light Gobo Impact Test Camera");
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.transform.position = new Vector3(0f, 0f, -4f);
+            camera.transform.rotation = Quaternion.identity;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 1f;
+            camera.depthTextureMode = DepthTextureMode.Depth;
+            var renderTexture = new RenderTexture(128, 128, 24, RenderTextureFormat.ARGBHalf);
+            camera.targetTexture = renderTexture;
+            var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            receiver.name = "Gobo Impact Receiver";
+            receiver.transform.position = Vector3.zero;
+            receiver.transform.localScale = Vector3.one * 2f;
+            var receiverMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            receiverMaterial.SetColor("_BaseColor", Color.black);
+            receiver.GetComponent<Renderer>().sharedMaterial = receiverMaterial;
+            var impact = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            impact.name = "Gobo Masked Impact";
+            impact.transform.position = new Vector3(0f, 0f, -0.01f);
+            impact.transform.localScale = Vector3.one * 1.5f;
+            var impactMaterial = new Material(Shader.Find("MizoTake/Virtual Light/Impact Footprint"));
+            impactMaterial.SetColor("_Color", Color.white);
+            impactMaterial.SetFloat("_InnerRatio", 0.8f);
+            impactMaterial.SetFloat("_SurfaceClipDistance", 0.04f);
+            var gobo = CreateHalfMaskGobo128();
+            impactMaterial.SetTexture("_VirtualLightGoboTexture", gobo);
+            impactMaterial.SetFloat("_VirtualLightGoboEnabled", 1f);
+            impact.GetComponent<Renderer>().sharedMaterial = impactMaterial;
+            Object.Destroy(impact.GetComponent<Collider>());
+            yield return null;
+            var whiteScreen = camera.WorldToScreenPoint(new Vector3(-0.2f, 0f, 0f));
+            var blackScreen = camera.WorldToScreenPoint(new Vector3(0.2f, 0f, 0f));
+            var whiteRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(whiteScreen.x), Mathf.RoundToInt(whiteScreen.y));
+            var blackRegion = RenderPixel(camera, renderTexture, Mathf.RoundToInt(blackScreen.x), Mathf.RoundToInt(blackScreen.y));
+
+            Assert.That(whiteRegion.r, Is.GreaterThan(0.01f));
+            Assert.That(blackRegion.r, Is.LessThan(whiteRegion.r * 0.1f));
+            Object.Destroy(impact);
+            Object.Destroy(receiver);
+            Object.Destroy(cameraObject);
+            Object.Destroy(impactMaterial);
+            Object.Destroy(receiverMaterial);
+            Object.Destroy(gobo);
+            renderTexture.Release();
+            Object.Destroy(renderTexture);
+            yield return null;
+        }
+
+        [UnityTest]
+        public IEnumerator CameraRender_EveryLightTypeCastsItsOwnShadow()
+        {
+            var lightTypes = new[] { VirtualLightType.Point, VirtualLightType.Spot, VirtualLightType.RectangleArea, VirtualLightType.Directional };
+            foreach (var lightType in lightTypes)
+            {
+                VirtualLightSystem.ResetForTests();
+                var cameraObject = new GameObject($"{lightType} Shadow Test Camera");
+                var camera = cameraObject.AddComponent<Camera>();
+                camera.transform.position = new Vector3(0f, 0f, -4f);
+                camera.transform.rotation = Quaternion.identity;
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.black;
+                camera.orthographic = true;
+                camera.orthographicSize = 1.5f;
+                var renderTexture = new RenderTexture(96, 96, 24, RenderTextureFormat.ARGBHalf);
+                camera.targetTexture = renderTexture;
+                var receiver = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                receiver.transform.position = Vector3.zero;
+                receiver.transform.localScale = Vector3.one * 3f;
+                var material = new Material(Shader.Find("MizoTake/Virtual Light/Lit"));
+                material.SetColor("_BaseColor", Color.white);
+                material.SetFloat("_ReceiveStandardLighting", 0f);
+                material.EnableKeyword("_RECEIVE_STANDARD_LIGHTING_OFF");
+                receiver.GetComponent<Renderer>().sharedMaterial = material;
+                var blocker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                blocker.name = $"{lightType} Shadow Blocker";
+                blocker.transform.position = new Vector3(0f, 0f, -1f);
+                blocker.transform.localScale = new Vector3(0.8f, 0.8f, 0.2f);
+                blocker.GetComponent<Renderer>().sharedMaterial = material;
+                blocker.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.ShadowsOnly;
+                blocker.AddComponent<VirtualLightOccluder>();
+                var lightObject = new GameObject($"{lightType} Shadow Test Light");
+                lightObject.transform.position = new Vector3(0f, 0f, -2f);
+                lightObject.transform.rotation = Quaternion.identity;
+                var virtualLight = lightObject.AddComponent<VirtualLight>();
+                virtualLight.Type = lightType;
+                virtualLight.Color = Color.red;
+                virtualLight.Intensity = lightType == VirtualLightType.Directional ? 2f : lightType == VirtualLightType.RectangleArea ? 30f : 100f;
+                virtualLight.Range = 8f;
+                virtualLight.InnerAngle = 70f;
+                virtualLight.OuterAngle = 80f;
+                virtualLight.AreaSize = Vector2.one * 0.5f;
+                virtualLight.AreaSampleCount = 4;
+                virtualLight.CastShadow = false;
+                yield return null;
+                var unshadowed = RenderCenterHdr(camera, renderTexture);
+                virtualLight.CastShadow = true;
+                yield return null;
+                var shadowed = RenderCenterHdr(camera, renderTexture);
+
+                Assert.That(unshadowed.r, Is.GreaterThan(0.03f), $"{lightType} must light the receiver before shadowing.");
+                Assert.That(shadowed.r, Is.LessThan(unshadowed.r * 0.5f), $"{lightType} must attenuate the receiver behind its registered blocker.");
+                Object.Destroy(lightObject);
+                Object.Destroy(blocker);
+                Object.Destroy(receiver);
+                Object.Destroy(cameraObject);
+                Object.Destroy(material);
+                renderTexture.Release();
+                Object.Destroy(renderTexture);
+                yield return null;
+            }
+            VirtualLightSystem.ResetForTests();
+        }
+
+        [UnityTest]
         public IEnumerator BeamOcclusion_StopsAtMarkedColliderAndRestoresRange()
         {
             VirtualLightSystem.ResetForTests();
@@ -1160,6 +1379,16 @@ namespace MizoTake.VirtualLight.Tests
             Object.Destroy(renderTexture);
             yield return null;
             VirtualLightSystem.ResetForTests();
+        }
+
+        private static Texture2D CreateHalfMaskGobo128()
+        {
+            var texture = new Texture2D(128, 128, TextureFormat.RGBA32, false, true) { name = "Half Mask 128", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Point };
+            var pixels = new Color[128 * 128];
+            for (var y = 0; y < 128; y++) for (var x = 0; x < 128; x++) pixels[y * 128 + x] = x < 64 ? Color.white : Color.black;
+            texture.SetPixels(pixels);
+            texture.Apply(false, false);
+            return texture;
         }
 
         private static Color RenderCenter(Camera camera, RenderTexture renderTexture)

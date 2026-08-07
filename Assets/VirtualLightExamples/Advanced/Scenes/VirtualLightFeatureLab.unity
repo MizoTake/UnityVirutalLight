@@ -295,6 +295,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 0
   affectOpaque: 1
+  goboTexture: {fileID: 0}
   occlusionDistance: -1
   staticPriority: 0
   priority: 0
@@ -2540,6 +2541,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 6.5
   staticPriority: 0
   priority: 0
@@ -3044,6 +3046,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 0
   affectOpaque: 1
+  goboTexture: {fileID: 0}
   occlusionDistance: -1
   staticPriority: 0
   priority: 0

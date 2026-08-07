@@ -3,9 +3,9 @@
 ## 主な負荷
 
 - active light数に応じたstructured buffer upload
-- 16x16 screen tileごとのlight selection
+- 16x16 screen tileごとの32-lights-per-uint mask selection（1 tile / 64-thread group）
 - Rectangle Areaのsample数
-- shadow付きSpot数とshadow map解像度
+- shadow付きlightのslice数（Spot 1、Point 6、Rectangle Area 2、Directional 1）とshadow map解像度
 - beam volumeのraymarch step数
 
 Beam materialはLow 12、Default 20、High 32 stepです。Highは見た目を確認してから限定的に使用してください。Profilerでは`beginCameraRendering`付近のCPU処理、GPU Profilerではtile culling、shadow、beam passを分けて確認します。
@@ -18,12 +18,14 @@ packageは固定のlight数やshadow slice数を設定していません。実�
 
 ## 現在の非対応範囲
 
-- Point/Rectangle Area shadow
+- cascaded Directional shadowとArea sampleごとのsoft shadow
 - Rectangle Spotに対応する四角形のbeam volume / impact footprint
 - transparent shadow transmission
 - temporal accumulationとmultiple scattering
 - generated VPL/light field
 - analytic LTC area light
 - Rectangle Areaの指向角、barn door、IES配光
+
+次段階では同じword layoutのZ Bin maskを追加して`tileMask & zBinMask`で列挙する設計、Static/Dynamic bufferとdirty uploadの分離、LTC＋現行sample fallbackを優先します。Stage機能はGobo/Cookieを起点に、IES、Iris、Frost、Barn Door、Prism、beam品質preset、shadow更新周期/cacheを独立機能として追加できる構成を維持します。
 
 ConsoleのWarning/Error、Frame Debuggerのpass順、ProfilerのCPU/GPU負荷を別々に確認してください。

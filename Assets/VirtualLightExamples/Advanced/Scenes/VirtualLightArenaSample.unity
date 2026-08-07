@@ -386,6 +386,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 5.9544287
   staticPriority: 0
   priority: 0
@@ -536,6 +537,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 0
   affectOpaque: 1
+  goboTexture: {fileID: 0}
   occlusionDistance: -1
   staticPriority: 0
   priority: 0
@@ -1017,6 +1019,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 3.5765138
   staticPriority: 0
   priority: 0
@@ -1388,6 +1391,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 0
   affectOpaque: 1
+  goboTexture: {fileID: 0}
   occlusionDistance: -1
   staticPriority: 0
   priority: 0
@@ -3874,6 +3878,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 5.6974235
   staticPriority: 0
   priority: 0
@@ -4943,6 +4948,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 0
   affectOpaque: 1
+  goboTexture: {fileID: 0}
   occlusionDistance: -1
   staticPriority: 0
   priority: 0
@@ -5527,6 +5533,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 2.9866555
   staticPriority: 0
   priority: 0
@@ -6224,6 +6231,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 6.146605
   staticPriority: 0
   priority: 0
@@ -6393,6 +6401,7 @@ MonoBehaviour:
   twoSided: 0
   castShadow: 1
   affectOpaque: 1
+  goboTexture: {fileID: 2800000, guid: caf551721e16e3b4c803412ec8967952, type: 3}
   occlusionDistance: 5.7036533
   staticPriority: 0
   priority: 0

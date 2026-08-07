@@ -7,6 +7,7 @@ namespace MizoTake.VirtualLight
     internal static class VirtualLightRenderBridge
     {
         private const int TileSize = 16;
+        private const int LightsPerTileMaskWord = sizeof(uint) * 8;
         private const int GpuStride = 80;
         private static readonly int LightCountId = Shader.PropertyToID("_VirtualLightCount");
         private static readonly int LightsId = Shader.PropertyToID("_VirtualLights");
@@ -56,6 +57,7 @@ namespace MizoTake.VirtualLight
             Shader.SetGlobalBuffer(TileCountsId, tileCountBuffer);
             Shader.SetGlobalBuffer(TileIndicesId, tileIndexBuffer);
             VirtualLightShadowMapArray.EnsureBindings();
+            VirtualLightGoboArray.EnsureBindings();
             RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
             Application.quitting += Dispose;
             initialized = true;
@@ -71,6 +73,7 @@ namespace MizoTake.VirtualLight
             initialized = false;
             ReleaseGpuBuffers();
             VirtualLightShadowMapArray.Dispose();
+            VirtualLightGoboArray.Dispose();
             tileCullingShader = null;
             kernel = -1;
             selectedLights = Array.Empty<VirtualLightGpu>();
@@ -85,6 +88,7 @@ namespace MizoTake.VirtualLight
             if (camera == null) return;
             EnsureSelectionCapacity(VirtualLightSystem.RegisteredCount);
             var count = VirtualLightSystem.FillSelected(camera.transform.position, selectedLights.Length, selectedLights, selectedDescriptors, selectedHandles);
+            UploadGobos(count);
             VirtualLightShadowMapArray.Render(context, camera, selectedDescriptors, selectedHandles, selectedLights, count);
             Shader.SetGlobalInt(LightCountId, count);
             if (count <= 0)
@@ -94,6 +98,20 @@ namespace MizoTake.VirtualLight
             }
             if (TryUploadTiled(camera, count)) return;
             UploadStructured(count);
+        }
+
+        private static void UploadGobos(int count)
+        {
+            try
+            {
+                VirtualLightGoboArray.Upload(selectedDescriptors, count);
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Virtual Light Gobo/Cookie textures are unavailable for this camera; lights remain unmasked. {exception.Message}");
+                VirtualLightGoboArray.Dispose();
+                VirtualLightGoboArray.BindUnmasked(count);
+            }
         }
 
         private static bool TryUploadTiled(Camera camera, int count)
@@ -111,16 +129,16 @@ namespace MizoTake.VirtualLight
                 var tileCountX = Mathf.CeilToInt(width / (float)TileSize);
                 var tileCountY = Mathf.CeilToInt(height / (float)TileSize);
                 var tileCount = checked(tileCountX * tileCountY);
-                var lightsPerTile = count;
-                var tileIndexCount = checked(tileCount * lightsPerTile);
-                var tileIndexBytes = checked((long)tileIndexCount * sizeof(uint));
+                var maskWordsPerTile = CalculateTileMaskWordCount(count);
+                var tileMaskElementCount = CalculateTileMaskElementCount(tileCount, count);
+                var tileIndexBytes = checked((long)tileMaskElementCount * sizeof(uint));
                 var graphicsBufferLimit = SystemInfo.maxGraphicsBufferSize;
                 var graphicsMemoryBudget = SystemInfo.graphicsMemorySize > 0 ? (long)SystemInfo.graphicsMemorySize * 1024L * 1024L / 8L : long.MaxValue;
                 if ((graphicsBufferLimit > 0 && tileIndexBytes > graphicsBufferLimit) || tileIndexBytes > graphicsMemoryBudget) return false;
-                EnsureTileBuffers(tileCount, tileIndexCount);
+                EnsureTileBuffers(tileCount, tileMaskElementCount);
                 var gpuProjection = GL.GetGPUProjectionMatrix(camera.projectionMatrix, camera.targetTexture != null);
                 tileCullingShader.SetInt(LightCountId, count);
-                tileCullingShader.SetInt(TileStrideId, lightsPerTile);
+                tileCullingShader.SetInt(TileStrideId, maskWordsPerTile);
                 tileCullingShader.SetVector(ScreenSizeId, new Vector4(width, height, tileCountX, tileCountY));
                 tileCullingShader.SetFloat(ProjectionScaleId, Mathf.Abs(gpuProjection.m11));
                 tileCullingShader.SetMatrix(ViewId, camera.worldToCameraMatrix);
@@ -132,7 +150,7 @@ namespace MizoTake.VirtualLight
                 Shader.SetGlobalBuffer(LightsId, lightBuffer);
                 Shader.SetGlobalBuffer(TileCountsId, tileCountBuffer);
                 Shader.SetGlobalBuffer(TileIndicesId, tileIndexBuffer);
-                Shader.SetGlobalVector(TileParamsId, new Vector4(tileCountX, tileCountY, TileSize, lightsPerTile));
+                Shader.SetGlobalVector(TileParamsId, new Vector4(tileCountX, tileCountY, TileSize, maskWordsPerTile));
                 Shader.SetGlobalInt(UseTilingId, 1);
                 return true;
             }
@@ -238,6 +256,18 @@ namespace MizoTake.VirtualLight
                 capacity *= 2;
             }
             return capacity;
+        }
+
+        internal static int CalculateTileMaskWordCount(int lightCount)
+        {
+            if (lightCount <= 0) return 0;
+            return checked((int)(((long)lightCount + LightsPerTileMaskWord - 1L) / LightsPerTileMaskWord));
+        }
+
+        internal static int CalculateTileMaskElementCount(int tileCount, int lightCount)
+        {
+            if (tileCount <= 0 || lightCount <= 0) return 0;
+            return checked(tileCount * CalculateTileMaskWordCount(lightCount));
         }
 
         private static void ReleaseTileBuffers()

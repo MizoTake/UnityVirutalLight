@@ -18,6 +18,7 @@ Shader "Hidden/MizoTake/Virtual Light/Shadow Caster"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             float4 _VirtualLightShadowCasterPositionRange;
+            float4 _VirtualLightShadowCasterDirectionMode;
 
             struct Attributes
             {
@@ -41,7 +42,9 @@ Shader "Hidden/MizoTake/Virtual Light/Shadow Caster"
 
             float Frag(Varyings input) : SV_Target
             {
-                return saturate(distance(input.positionWS, _VirtualLightShadowCasterPositionRange.xyz) * _VirtualLightShadowCasterPositionRange.w);
+                float radialDepth = distance(input.positionWS, _VirtualLightShadowCasterPositionRange.xyz) * _VirtualLightShadowCasterPositionRange.w;
+                float linearDepth = dot(input.positionWS - _VirtualLightShadowCasterPositionRange.xyz, _VirtualLightShadowCasterDirectionMode.xyz) * _VirtualLightShadowCasterPositionRange.w;
+                return saturate(lerp(radialDepth, linearDepth, _VirtualLightShadowCasterDirectionMode.w));
             }
             ENDHLSL
         }

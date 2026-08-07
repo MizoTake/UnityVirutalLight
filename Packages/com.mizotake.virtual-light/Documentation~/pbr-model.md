@@ -34,13 +34,19 @@ The smooth window reaches zero at the configured range without replacing the inv
 
 Spot lights multiply distance attenuation by a linearly remapped shape term between the outer and inner boundaries. Circle Spot uses the forward-direction cosine and creates a circular cone. Rectangle Spot takes the maximum absolute horizontal/vertical slope in the Transform-oriented light basis and creates a square pyramid; Inner/Outer Angle apply equally on both axes. `Surface Penumbra Sharpness = 0` uses the standard squared term. Increasing it continuously focuses only the inner-to-outer transition toward an eighth-power term while keeping attenuation at one on the inner boundary and zero on the outer boundary. Rectangle Spot direct-light boundaries and shadow projection follow Transform roll. The optional beam and impact visual path remains circular.
 
+## Gobo / Cookie masks
+
+Each light can reference a grayscale `Texture2D`. Textures are deduplicated for the selected lights, GPU-resampled into a 128x128 `Texture2DArray`, and addressed by a separate metadata buffer so the 80-byte light record stays unchanged. Point uses an equirectangular lookup, Spot projects through its Outer Angle, Directional uses Transform position as the center and Range as world size, and Rectangle Area uses Area Size. Missing textures resolve to a white fallback and preserve the previous output.
+
+Spot beam and impact renderers receive the owning light's source texture through a `MaterialPropertyBlock`. Surface, beam, and impact use the same RGB-luminance multiplied by alpha mask rule.
+
 ## Directional lights
 
-Directional lights use `transform.forward` as the direction in which light rays travel. The BRDF therefore receives `-transform.forward` as the surface-to-light direction. Their direct-light attenuation is constant at one: Transform position and Range do not affect the result, and the light is included in every screen tile. `Intensity` scales the directional light color directly. Custom Directional shadows are not currently supported.
+Directional lights use `transform.forward` as the direction in which light rays travel. The BRDF therefore receives `-transform.forward` as the surface-to-light direction. Their unmasked direct-light attenuation is constant at one and the light is included in every screen tile. `Intensity` scales the directional light color directly. Transform position and Range define Gobo anchoring and the single camera-centered non-cascaded shadow coverage, but do not add distance attenuation.
 
-## Spot shadow visibility
+## Shadow visibility
 
-Shadow-enabled Spot lights use a custom light-space shadow-map `Texture2DArray`. The array and its matrix metadata are sized dynamically, with a separate slice for each eligible Spot. Visibility from that slice multiplies only the owning light's BRDF contribution; it does not impose a shared axial cutoff on the receiver. The participating-media beam shader samples the same slice during raymarching so opaque PBR and beam-volume visibility remain associated with the same light.
+Shadow-enabled lights use a custom light-space shadow-map `Texture2DArray`. Spot uses one perspective slice, Point uses six 94-degree faces, Rectangle Area uses front/back center-projection slices, and Directional uses one camera-centered non-cascaded orthographic slice. Visibility multiplies only the owning light's BRDF contribution; it does not impose a shared axial cutoff on the receiver. The participating-media Spot beam shader samples the same Spot slice during raymarching so opaque PBR and beam-volume visibility remain associated with the same light.
 
 Only opaque Renderers below registered `VirtualLightOccluder` hierarchies are in the current caster path. Alpha-clipped and transparent shadow casting are not guaranteed. If the shadow array or metadata buffers cannot be allocated, affected lights continue without shadow visibility rather than being removed from direct lighting.
 
@@ -50,7 +56,7 @@ Rectangle Area lights use centered stratified point samples over the emitting re
 
 `Intensity` is treated as emitted radiance for Rectangle Area lights, so increasing Area Size increases total emitted power. This differs from Point and Spot intensity, which controls the punctual-light strength directly.
 
-The sampled-area method is intentionally bounded and deterministic, but it is not an analytic area-light solution. It can approximate the diffuse footprint and multiple specular samples, while Linearly Transformed Cosines (LTC) or another analytic integration method remains a future option for smoother rectangle-shaped highlights.
+The sampled-area method is intentionally bounded and deterministic, but it is not an analytic area-light solution. Its shadow is likewise a center-projection approximation rather than a multi-sample soft penumbra. It can approximate the diffuse footprint and multiple specular samples, while Linearly Transformed Cosines (LTC) remains a planned alternative with the current sampler retained as a fallback.
 
 ## Reference model
 

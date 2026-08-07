@@ -99,6 +99,56 @@ namespace MizoTake.VirtualLight.Tests
             }
         }
 
+        [TestCase(LightType.Spot)]
+        [TestCase(LightType.Directional)]
+        public void ConvertLight_PreservesTwoDimensionalGoboCookie(LightType lightType)
+        {
+            var gameObject = new GameObject(lightType + " Gobo Light");
+            var source = gameObject.AddComponent<Light>();
+            var texture = new Texture2D(128, 128, TextureFormat.RGBA32, false, true);
+            try
+            {
+                source.type = lightType;
+                source.cookie = texture;
+                source.cookieSize = 17f;
+
+                var converted = VirtualLightComponentConverter.ConvertLight(source, false);
+
+                Assert.That(converted, Is.Not.Null);
+                Assert.That(converted.GoboTexture, Is.SameAs(texture));
+                if (lightType == LightType.Directional) Assert.That(converted.Range, Is.EqualTo(17f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
+        [Test]
+        public void ConvertLight_DoesNotAssignPointCubemapToTwoDimensionalGobo()
+        {
+            var gameObject = new GameObject("Point Cubemap Cookie Light");
+            var source = gameObject.AddComponent<Light>();
+            var cubemap = new Cubemap(16, TextureFormat.RGBA32, false);
+            try
+            {
+                source.type = LightType.Point;
+                source.cookie = cubemap;
+
+                var converted = VirtualLightComponentConverter.ConvertLight(source, false);
+
+                Assert.That(converted, Is.Not.Null);
+                Assert.That(converted.Type, Is.EqualTo(VirtualLightType.Point));
+                Assert.That(converted.GoboTexture, Is.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(cubemap);
+                Object.DestroyImmediate(gameObject);
+            }
+        }
+
         [Test]
         public void ConvertLight_MapsPyramidSpotToRectangleShape()
         {

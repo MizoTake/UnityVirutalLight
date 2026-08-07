@@ -21,8 +21,8 @@ namespace MizoTake.VirtualLight
                 var rightStatic = (right.Descriptor.Flags & VirtualLightFlags.Static) != 0;
                 var result = rightStatic.CompareTo(leftStatic);
                 if (result != 0) return result;
-                var leftShadow = left.Descriptor.Type == VirtualLightType.Spot && (left.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
-                var rightShadow = right.Descriptor.Type == VirtualLightType.Spot && (right.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
+                var leftShadow = (left.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
+                var rightShadow = (right.Descriptor.Flags & VirtualLightFlags.CastShadow) != 0;
                 result = rightShadow.CompareTo(leftShadow);
                 if (result != 0) return result;
                 result = right.Descriptor.Priority.CompareTo(left.Descriptor.Priority);

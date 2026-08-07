@@ -22,7 +22,7 @@ Scene ViewではVirtual Lightの矢印Gizmo、Game Viewでは各Emitterから伸
 
 - Area Sample Countは面上のサンプル密度であり、方向の広がりを狭くするパラメータではありません。
 - 現在のRectangle AreaはLambert型の半球放射です。Spotのcone angleに相当する指向角、barn door、IES配光は未対応です。
-- Rectangle Areaのcustom shadow mapは未対応です。`Cast Shadow`を有効にしてもSpotと同じ影は生成されません。
+- Rectangle Areaのcustom shadowは面中心からのfront/back投影近似です。Area sampleごとのsoft penumbraではないため、見た目と負荷を確認して使用してください。
 - Transformの負のscaleは使わず、Rotationで向きを変更してください。
 
 Inspectorで`Show Sample Points`を有効にすると、面積近似に使うサンプル位置も確認できます。

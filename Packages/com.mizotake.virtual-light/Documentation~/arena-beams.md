@@ -12,7 +12,7 @@ The volume uses a homogeneous single-scattering approximation. Extinction Densit
 
 Core Radius is the half-energy radius of a Gaussian-shaped high-intensity core inside the wider radial envelope. Core Strength changes that core's incident-light gain; Beam Plateau and Edge Softness control the lower-energy outer body. Hot Core Mix optionally desaturates only the accumulated core contribution toward the source peak channel, approximating camera or fixture highlight saturation without whitening the halo. Source Fade, End Fade, and these radial controls shape incident light rather than changing medium density. Haze Variation is the only control that perturbs medium density, and it uses interpolated value noise so cell boundaries do not appear as hard haze blocks.
 
-Opaque scene depth is evaluated per raymarch sample. A surface therefore fades only nearby samples instead of multiplying the complete beam by a zero intersection term. Multiple beam proxies never attenuate or collide with one another: they use RGB-only `Blend One One`, so their in-scattered radiance is added independently.
+Opaque scene depth is evaluated per raymarch sample. A surface therefore fades only nearby samples instead of multiplying the complete beam by a zero intersection term. A Gobo/Cookie on the owning Spot multiplies the same grayscale-and-alpha mask used by opaque lighting and the impact footprint. Multiple beam proxies never attenuate or collide with one another: they use RGB-only `Blend One One`, so their in-scattered radiance is added independently.
 
 ## Quality
 

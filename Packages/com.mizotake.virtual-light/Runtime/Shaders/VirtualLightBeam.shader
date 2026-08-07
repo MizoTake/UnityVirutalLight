@@ -22,6 +22,8 @@ Shader "MizoTake/Virtual Light/Beam"
         _WideAngleScatter("Isotropic Scattering Fraction", Range(0, 1)) = 0.25
         _IntersectionSoftness("Intersection Softness", Range(0.01, 1)) = 0.2
         [PerRendererData] _VirtualLightShadowSlice("Shadow Slice", Float) = -1
+        [PerRendererData][NoScaleOffset] _VirtualLightGoboTexture("Gobo Texture", 2D) = "white" {}
+        [PerRendererData] _VirtualLightGoboEnabled("Gobo Enabled", Float) = 0
     }
     SubShader
     {
@@ -44,6 +46,9 @@ Shader "MizoTake/Virtual Light/Beam"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
             #include "Packages/com.mizotake.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
 
+            TEXTURE2D(_VirtualLightGoboTexture);
+            SAMPLER(sampler_VirtualLightGoboTexture);
+
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color;
                 half _Density;
@@ -65,6 +70,7 @@ Shader "MizoTake/Virtual Light/Beam"
                 half _WideAngleScatter;
                 half _IntersectionSoftness;
                 float _VirtualLightShadowSlice;
+                float _VirtualLightGoboEnabled;
             CBUFFER_END
 
             struct Attributes
@@ -240,13 +246,16 @@ Shader "MizoTake/Virtual Light/Beam"
                     float coneRadius = BeamRadius(axial, sourceRadiusOS);
                     float radial = length(sampleOS.xy) / coneRadius;
                     float radialProfile = pow(saturate(1.0 - smoothstep(_EdgeStart, 1.0, radial)), rcp(max(_EdgeExponent, 0.01)));
+                    float2 goboUV = sampleOS.xy / max(coneRadius * 2.0, 1e-5) + 0.5;
+                    half4 goboSample = SAMPLE_TEXTURE2D_LOD(_VirtualLightGoboTexture, sampler_VirtualLightGoboTexture, goboUV, 0);
+                    float goboMask = lerp(1.0, saturate(dot(goboSample.rgb, float3(0.2126, 0.7152, 0.0722)) * goboSample.a), saturate(_VirtualLightGoboEnabled));
                     float sourceFade = smoothstep(0.0, _SourceFade, axial);
                     float endFade = 1.0 - smoothstep(1.0 - _EndFade, 1.0, axial);
                     float3 sampleWS = TransformObjectToWorld(sampleOS);
                     float noise = lerp(1.0 - _NoiseAmount, 1.0 + _NoiseAmount, SmoothValueNoise(sampleWS * _NoiseScale + float3(0.0, _Time.y * _NoiseSpeed, _Time.y * _NoiseSpeed * 0.37)));
                     float coreProfile = exp2(-pow(radial / max(_CoreRadius, 0.01), 2.0));
                     float core = lerp(1.0, _CoreStrength, coreProfile);
-                    float beamEnvelope = radialProfile * sourceFade * endFade;
+                    float beamEnvelope = radialProfile * goboMask * sourceFade * endFade;
                     float sigmaT = _Density * noise;
                     float sigmaS = sigmaT * _SingleScatteringAlbedo;
                     float stepTransmittance = exp(-sigmaT * stepLengthWS);

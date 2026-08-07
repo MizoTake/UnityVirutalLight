@@ -19,17 +19,23 @@ float4x4 _VirtualLightView;
 float4x4 _VirtualLightViewProjection;
 float _VirtualLightProjectionScale;
 
-[numthreads(1, 1, 1)]
-void CullTiles(uint3 dispatchThreadId : SV_DispatchThreadID)
+groupshared uint acceptedCount;
+
+[numthreads(64, 1, 1)]
+void CullTiles(uint3 groupId : SV_GroupID, uint3 groupThreadId : SV_GroupThreadID)
 {
     uint tileCountX = (uint)_VirtualLightScreenSize.z;
     uint tileCountY = (uint)_VirtualLightScreenSize.w;
-    if (dispatchThreadId.x >= tileCountX || dispatchThreadId.y >= tileCountY) return;
-    uint tileIndex = dispatchThreadId.y * tileCountX + dispatchThreadId.x;
-    float2 tileMinimum = float2(dispatchThreadId.xy * 16u);
+    if (groupId.x >= tileCountX || groupId.y >= tileCountY) return;
+    uint tileIndex = groupId.y * tileCountX + groupId.x;
+    uint tileWordOffset = tileIndex * _VirtualLightTileStride;
+    uint localThreadIndex = groupThreadId.x;
+    if (localThreadIndex == 0u) acceptedCount = 0u;
+    for (uint wordIndex = localThreadIndex; wordIndex < _VirtualLightTileStride; wordIndex += 64u) _VirtualLightTileIndices[tileWordOffset + wordIndex] = 0u;
+    AllMemoryBarrierWithGroupSync();
+    float2 tileMinimum = float2(groupId.xy * 16u);
     float2 tileMaximum = min(tileMinimum + 16.0, _VirtualLightScreenSize.xy);
-    uint acceptedCount = 0;
-    for (uint lightIndex = 0; lightIndex < _VirtualLightCount; lightIndex++)
+    for (uint lightIndex = localThreadIndex; lightIndex < _VirtualLightCount; lightIndex += 64u)
     {
         VirtualLightGpu light = _VirtualLights[lightIndex];
         uint lightType = (uint)round(light.directionType.w);
@@ -58,8 +64,11 @@ void CullTiles(uint3 dispatchThreadId : SV_DispatchThreadID)
             }
         }
         if (!overlaps) continue;
-        _VirtualLightTileIndices[tileIndex * _VirtualLightTileStride + acceptedCount] = lightIndex;
-        acceptedCount++;
+        uint wordIndex = lightIndex >> 5u;
+        uint lightBit = lightIndex & 31u;
+        InterlockedOr(_VirtualLightTileIndices[tileWordOffset + wordIndex], 1u << lightBit);
+        InterlockedAdd(acceptedCount, 1u);
     }
-    _VirtualLightTileCounts[tileIndex] = acceptedCount;
+    GroupMemoryBarrierWithGroupSync();
+    if (localThreadIndex == 0u) _VirtualLightTileCounts[tileIndex] = acceptedCount;
 }

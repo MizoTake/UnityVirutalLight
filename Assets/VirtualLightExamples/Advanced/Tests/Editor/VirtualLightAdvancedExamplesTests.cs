@@ -152,6 +152,23 @@ namespace MizoTake.VirtualLight.AdvancedExamples.Tests
             Assert.That(markedColliders.All(collider => collider.gameObject.layer == occluderLayer), Is.True);
         }
 
+        [TestCase("Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity", 1)]
+        [TestCase("Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightArenaSample.unity", 6)]
+        public void BeamOcclusionScenes_ShareOneHundredTwentyEightPixelGoboWithSurfaceBeamAndImpact(string scenePath, int expectedBeamLightCount)
+        {
+            const string goboPath = "Assets/VirtualLightExamples/Advanced/Textures/GoboStar128.png";
+            var gobo = AssetDatabase.LoadAssetAtPath<Texture2D>(goboPath);
+            Assert.That(gobo, Is.Not.Null);
+            Assert.That(gobo.width, Is.EqualTo(128));
+            Assert.That(gobo.height, Is.EqualTo(128));
+
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var beamLights = Object.FindObjectsByType<MizoTake.VirtualLight.VirtualLight>(FindObjectsInactive.Include, FindObjectsSortMode.None).Where(light => light.Type == VirtualLightType.Spot && light.GetComponentInChildren<VirtualLightBeamVolume>(true) != null).ToArray();
+            Assert.That(beamLights, Has.Length.EqualTo(expectedBeamLightCount));
+            Assert.That(beamLights.All(light => light.GoboTexture == gobo), Is.True);
+            Assert.That(beamLights.All(light => light.GetComponent<VirtualLightBeamOcclusion>() != null), Is.True);
+        }
+
         [Test]
         public void Arena_SpotHotspotMatchesVolumetricBeamCore()
         {

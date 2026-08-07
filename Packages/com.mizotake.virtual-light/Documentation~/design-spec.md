@@ -116,9 +116,9 @@
    必要な場合、Compute Shaderで2D/3Dテクスチャへ光量を注入し、霧・水中・残光へ利用する。
 
 5. **遮蔽**  
-   CastShadowが有効なSpotライトには、動的`Texture2DArray`のスライスを割り当てる。
-   不透明PBRとビームボリュームは同じスライスを参照する。
-   Point型、Rectangle Area型、透明伝搬には、SDF、ボクセル、スクリーンスペース近似、またはレイトレーシングを拡張方式として使用する。
+   CastShadowが有効な全Virtual Lightには、LightTypeごとの必要枚数を持つ動的`Texture2DArray`のスライスを割り当てる。
+   Pointは6面、Spotは1面、Rectangle Areaは前後2面の中心投影近似、Directionalはカメラ中心の非カスケード1面を使用する。
+   Spotの不透明PBRとビームボリュームは同じスライスを参照する。
 
 6. **時間安定化**  
    光場や低サンプルの間接光にはTemporal Accumulationを適用する。
@@ -165,7 +165,7 @@ flowchart LR
     E --> I[Opaque / Transparent Material Shader]
     H --> I
 
-    J[Dynamic Spot Shadow Texture2DArray / SDF / Voxel / RT] --> I
+    J[Dynamic Virtual Light Shadow Texture2DArray / SDF / Voxel / RT] --> I
     I --> K[Final Lighting]
 
     L[Reflection / Refraction Probe Pass] --> M[VPL Candidate Generation]
@@ -419,7 +419,7 @@ InspectorまたはSceneビューOverlayから次を切り替えられるよう�
 - Gizmo常時表示
 - 影響範囲
 - Areaサンプル点
-- Spot Shadow Texture2DArrayのスライス番号
+- Virtual Light Shadow Texture2DArrayのスライス番号
 - クラスタ登録範囲
 - 推定寄与値
 - カリング状態
@@ -453,7 +453,7 @@ InspectorまたはSceneビューOverlayから次を切り替えられるよう�
 1. CPU側のライト差分を収集する。
 2. ライトデータをGPUバッファへ転送する。
 3. Compute Shaderでライトの画面範囲またはクラスタ範囲を算出する。
-4. クラスタごとのライトインデックス一覧を生成する。
+4. タイルごとのライトビットマスクを生成する。
 5. 必要に応じて光場テクスチャへライトを注入する。
 6. 遮蔽情報を更新する。
 7. 不透明物体を描画し、仮想ライトをPBR評価へ加算する。
@@ -490,22 +490,20 @@ InspectorまたはSceneビューOverlayから次を切り替えられるよう�
 | 項目 | 既定値 |
 |---|---:|
 | タイルサイズ | 16 × 16 pixel |
-| 深度スライス | 24 |
-| 1タイルまたは1クラスタのライトインデックス容量 | 現在の有効ライト数に合わせて動的確保 |
+| 深度スライス | 未実装。将来Z Binとして追加 |
+| 1タイルのライトマスク容量 | `ceil(有効ライト数 / 32)` uint |
 | 確保失敗時 | 動的StructuredBufferの直接評価へ切替 |
 
-深度スライスは線形ではなく、カメラ近傍を細かくする対数寄りの分割を推奨する。
+Compute Shaderは1タイルを1 Thread Groupへ割り当て、64スレッドでライト判定を分担し、`InterlockedOr`でタイルマスクへ集約する。ピクセル側は`firstbitlow`でセットビットだけを列挙する。将来のZ Binは同じword layoutで生成し、`activeLights = tileMask & zBinMask`として適用できる構成にする。
 
 ### 10.3 バッファ
 
-- Cluster Offset Buffer
-- Cluster Count Buffer
-- Light Index Buffer
-- Overflow Counter
+- Tile Count Buffer（診断用）
+- Tile Light Mask Buffer
 
 ### 10.4 容量管理
 
-- ライトインデックスの必要要素数は、タイル数またはクラスタ数と有効ライト数から算出する。
+- ライトマスクの必要要素数は、`タイル数 × ceil(有効ライト数 / 32)`から算出する。
 - バッファは必要容量以上へ動的に拡張し、固定されたクラスタ枠を理由にライトを除外しない。
 - 要素数の乗算は整数オーバーフローを検査し、確保不能時は動的StructuredBufferの直接評価へ切り替える。
 - デバッグビルドでは、確保済み容量、必要容量、直接評価への切替状態を表示する。
@@ -522,6 +520,7 @@ Lo += BRDF(material, N, V, L)
       × Intensity
       × DistanceAttenuation
       × SpotAttenuation
+      × GoboMask
       × Visibility
       × NdotL
 ```
@@ -555,6 +554,8 @@ float EvaluateSpotAttenuation(
 ```
 
 Rectangle Spotの`EvaluateSquarePyramidCosine`は、forward成分とright / up成分の最大絶対値から正四角錐の角度座標を求める。これにより円錐の対角外側でも四角錐の内側なら寄与し、形状はTransform rollへ追従する。線形の角度減衰値には`SpotPenumbraSharpness`に応じた2乗から8乗のペナンブラ曲線を適用する。
+
+任意解像度の2D Gobo / CookieはGPU上で128×128のTexture2DArrayへリサンプルし、Pointは正距円筒、Spotは投影、Rectangle AreaとDirectionalは平行投影で白黒マスクを評価する。Spotでは同じTextureを不透明PBR、ビーム断面、impact footprintへ適用する。
 
 ### 11.3 強度単位
 
@@ -626,31 +627,30 @@ LightFieldCurrent
 | None | 低 | 最小 | 演出ライト、発光補助 |
 | Screen Space | 低〜中 | 低 | カメラ内の近似影 |
 | SDF / Voxel | 中 | 中 | 多数ライトの広域遮蔽 |
-| Dynamic Spot Shadow Texture2DArray | 高 | 中〜高 | CastShadowが有効なSpotライト |
+| Dynamic Virtual Light Shadow Texture2DArray | 高 | 中〜高 | CastShadowが有効な全Virtual Light |
 | Ray Traced Shadow | 高 | 高 | 対応環境の高品質設定 |
 
 ### 13.2 推奨デフォルト
 
-- CastShadowが有効なSpotライトごとに、カメラ単位のシャドウスライスを割り当てる。
+- CastShadowが有効なVirtual Lightごとに、カメラ単位のシャドウスライスを割り当てる。
 - `VirtualLightOccluder`配下の不透明Rendererを、登録済みのシャドウキャスターとして描画する。
-- 不透明PBRシェーダーとビームボリュームは、各Spotライトに割り当てた同一スライスのVisibilityを参照する。
+- 不透明PBRシェーダーは全LightTypeの対応スライスを参照し、Spotのビームボリュームは同じSpotスライスのVisibilityを参照する。
 - ビームボリューム自体はシャドウキャスターに含めず、複数ビームの放射輝度は加算する。
-- 生成VPL、Directional型、Point型、Rectangle Area型には、必要に応じてSDFまたはVoxel近似を拡張する。
 - 高品質設定では、選択した遮蔽方式をレイトレーシングへ置換可能とする。
 
-### 13.3 動的Spot Shadow Texture2DArray
+### 13.3 動的Virtual Light Shadow Texture2DArray
 
 | 項目 | 仕様 |
 |---|---|
 | シャドウリソース | カメラ単位の`Texture2DArray` |
-| スライス数 | CastShadowが有効なSpotライト数に合わせて動的確保 |
+| スライス数 | Point: 6、Spot: 1、Rectangle Area: 2、Directional: 1を合計して動的確保 |
 | スライス解像度 | Low: 256、Medium: 512、High: 768、Ultra: 1024 |
 | メタデータ | ライト行列と位置・逆Rangeを動的`GraphicsBuffer`へ格納 |
 | キャスター | `VirtualLightOccluder`配下の不透明Renderer |
 | フィルタ | 3 × 3 Tent PCF相当 |
 | 確保失敗時 | ライトを維持し、該当カメラではシャドウなしで評価 |
 
-1ライトに1スライスを対応させるため、タイル状の固定区画へ割り当てる方式は採用しない。
+LightTypeごとの連続スライスを割り当てるため、タイル状の固定区画へ割り当てる方式は採用しない。
 パッケージ固有のシャドウ灯数上限も設けない。
 実用上の制約は、GPUの`Texture2DArray`スライス数、テクスチャ寸法、メモリ容量、確保可否、および許容フレーム時間である。
 
@@ -795,10 +795,10 @@ Result  = Lerp(Current, History, HistoryWeight)
 | 項目 | 目安 |
 |---|---:|
 | ライト本体（256灯の計測例） | 20 KiB |
-| ライトインデックス | 数百KiB〜数MiB |
+| タイルライトマスク | `タイル数 × ceil(ライト数 / 32) × 4 byte` |
 | 3D光場 RGBA16F | 約7.4 MiB / buffer |
 | 3D光場ダブルバッファ | 約14.8 MiB |
-| Spot Shadow Texture2DArray | `解像度 × 解像度 × スライス数 × 1 texelあたりbyte数` |
+| Virtual Light Shadow Texture2DArray | `解像度 × 解像度 × 全スライス数 × 1 texelあたりbyte数` |
 
 ---
 
@@ -809,7 +809,7 @@ Compute Shaderが使用できない場合、以下へ切り替える。
 1. 登録ライトを動的StructuredBufferへ転送する。
 2. マテリアルシェーダーで`_VirtualLightCount`件を直接評価する。
 3. タイルインデックス生成、光場、VPL自動生成、体積注入を無効化する。
-4. Texture Arrayと必要な描画機能を使用できる場合は、カスタムSpotシャドウを継続する。
+4. Texture Arrayと必要な描画機能を使用できる場合は、全LightTypeのカスタムシャドウを継続する。
 5. シャドウリソースを確保できない場合は、ライト本体を維持したままVisibilityを1として評価する。
 
 直接評価はライト数に比例して負荷が増えるが、パッケージ側で固定件数へ切り詰めない。
@@ -872,7 +872,7 @@ GPUカウンタとして以下を取得する。
 - [ ] タイルまたはクラスタ単位のライト選別が動作する。
 - [ ] 不透明PBRマテリアルへ光が反映される。
 - [ ] 登録ライト数の増減に応じてGPUバッファが拡張され、固定件数を理由に寄与が欠落しない。
-- [ ] CastShadowが有効なSpotライト数に応じてシャドウスライスが拡張される。
+- [ ] CastShadowが有効な全LightTypeの必要枚数に応じてシャドウスライスが拡張される。
 - [ ] 不透明PBRとビームボリュームが、同じSpotライトのシャドウVisibilityを参照する。
 - [ ] デバッグ表示で各ライトの影響範囲を確認できる。
 - [ ] NaN、バッファ範囲外アクセス、GPUハングが発生しない。
@@ -916,7 +916,7 @@ GPUカウンタとして以下を取得する。
 - 全ライト点滅
 - 単一クラスタへの集中
 - 均等分散
-- 影なし / 動的Spot Shadow Texture2DArray / 近似遮蔽 / RT
+- 影なし / 動的Virtual Light Shadow Texture2DArray / 近似遮蔽 / RT
 - 2D光場 / 3D光場
 
 16、64、128、256ライトは性能曲線を比較するための測定点であり、容量上限ではない。
@@ -941,7 +941,7 @@ GPUカウンタとして以下を取得する。
 
 | リスク | 症状 | 対策 |
 |---|---|---|
-| 光漏れ | 壁裏や閉空間が明るくなる | 動的Spot Shadow Texture2DArray、SDF、Voxel、厚み推定 |
+| 光漏れ | 壁裏や閉空間が明るくなる | 動的Virtual Light Shadow Texture2DArray、SDF、Voxel、厚み推定 |
 | ライト数増大 | GPU時間とメモリ使用量が増える | Tiled / Clustered Lighting、動的バッファ、GPU時間とメモリの計測 |
 | VPLの発散 | 極端に明るくなる | エネルギークランプ、バウンス1、フィードバック禁止 |
 | 時間ちらつき | VPL位置がフレームごとに変わる | Temporal、空間統合、ヒステリシス |
@@ -977,7 +977,7 @@ GPUカウンタとして以下を取得する。
 
 ### Phase 3: 遮蔽と品質向上
 
-- 動的Spot Shadow Texture2DArray
+- 動的Virtual Light Shadow Texture2DArray
 - SDF / Voxel遮蔽
 - 透明物体・体積光対応
 - アップサンプリング改善
@@ -1032,7 +1032,7 @@ Tiled / Clustered Lightingでピクセルごとの評価対象を局所化
     ↓
 既存PBRへ追加光として反映
     ↓
-CastShadowが有効なSpotライトへ動的シャドウスライスを割当
+CastShadowが有効な全Virtual LightへLightType別の動的シャドウスライスを割当
     ↓
 2D / 3D光場を追加
     ↓

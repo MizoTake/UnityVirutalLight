@@ -4,10 +4,6 @@
 #ifndef UNIVERSAL_LIGHTING_INCLUDED
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #endif
-#ifndef MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS
-#include "Packages/com.mizotake.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
-#endif
-
 struct VirtualLightGpu
 {
     float4 positionRadius;
@@ -16,6 +12,14 @@ struct VirtualLightGpu
     float4 coneShadowFlags;
     float4 areaSizeParams;
 };
+
+#ifndef MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS
+#include "Packages/com.mizotake.virtual-light/Runtime/Shaders/VirtualLightShadow.hlsl"
+#endif
+
+TEXTURE2D_ARRAY(_VirtualLightGoboTextures);
+SAMPLER(sampler_VirtualLightGoboTextures);
+StructuredBuffer<float4> _VirtualLightGoboParams;
 
 StructuredBuffer<VirtualLightGpu> _VirtualLights;
 StructuredBuffer<uint> _VirtualLightTileCounts;
@@ -38,6 +42,45 @@ void MizotGetVirtualLightBasis(float3 forward, float rotation, out float3 right,
     float rotationSine = sin(rotation);
     right = referenceRight * rotationCosine + referenceUp * rotationSine;
     up = referenceUp * rotationCosine - referenceRight * rotationSine;
+}
+
+float MizotSampleVirtualLightGobo(uint lightIndex, VirtualLightGpu light, float3 positionWS)
+{
+    int slice = (int)round(_VirtualLightGoboParams[lightIndex].x);
+    if (slice < 0) return 1.0;
+    uint lightType = (uint)round(light.directionType.w);
+    float3 lightForward = SafeNormalize(light.directionType.xyz);
+    float3 offsetFromLight = positionWS - light.positionRadius.xyz;
+    float2 uv;
+    if (lightType == 0u)
+    {
+        float3 directionFromLight = SafeNormalize(offsetFromLight);
+        uv = float2(atan2(directionFromLight.x, directionFromLight.z) * 0.15915494309 + 0.5, asin(clamp(directionFromLight.y, -1.0, 1.0)) * 0.31830988618 + 0.5);
+    }
+    else
+    {
+        float3 right;
+        float3 up;
+        MizotGetVirtualLightBasis(lightForward, light.areaSizeParams.w, right, up);
+        if (lightType == 1u)
+        {
+            float forwardDistance = dot(offsetFromLight, lightForward);
+            float halfExtent = forwardDistance * tan(acos(clamp(light.coneShadowFlags.y, -1.0, 1.0)));
+            if (forwardDistance <= 0.0 || halfExtent <= 1e-5) return 0.0;
+            uv = float2(dot(offsetFromLight, right), dot(offsetFromLight, up)) / (2.0 * halfExtent) + 0.5;
+        }
+        else if (lightType == 2u)
+        {
+            uv = float2(dot(offsetFromLight, right) / max(light.areaSizeParams.x, 1e-4), dot(offsetFromLight, up) / max(light.areaSizeParams.y, 1e-4)) + 0.5;
+        }
+        else
+        {
+            uv = float2(dot(offsetFromLight, right), dot(offsetFromLight, up)) / max(light.positionRadius.w, 1e-4) + 0.5;
+        }
+        if (any(uv < 0.0) || any(uv > 1.0)) return 0.0;
+    }
+    float4 sampleValue = SAMPLE_TEXTURE2D_ARRAY_LOD(_VirtualLightGoboTextures, sampler_VirtualLightGoboTextures, uv, slice, 0);
+    return saturate(dot(sampleValue.rgb, float3(0.2126, 0.7152, 0.0722)) * sampleValue.a);
 }
 
 float MizotRangeAttenuation(float distanceToLight, float rangeDistance, float radius)
@@ -71,18 +114,22 @@ float3 MizotEvaluateSample(VirtualLightGpu light, float3 samplePosition, float s
 #endif
 }
 
-float3 MizotEvaluateDirectionalLight(VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, half3 normalWS, half3 viewDirectionWS)
+float3 MizotEvaluateDirectionalLight(uint lightIndex, VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, float3 positionWS, half3 normalWS, half3 viewDirectionWS)
 {
     half3 lightDirection = -SafeNormalize(light.directionType.xyz);
     half3 lightColor = light.colorIntensity.rgb * light.colorIntensity.w;
+    float attenuation = MizotSampleVirtualLightGobo(lightIndex, light, positionWS);
+#if !defined(MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS) && !defined(_RECEIVE_SHADOWS_OFF)
+    attenuation *= MizotSampleVirtualLightShadow(light.coneShadowFlags.z, 3.0, light.directionType.xyz, positionWS, normalWS, lightDirection, false);
+#endif
 #if defined(_SPECULARHIGHLIGHTS_OFF)
-    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, 1.0, normalWS, viewDirectionWS, clearCoatMask, true);
+    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, attenuation, normalWS, viewDirectionWS, clearCoatMask, true);
 #else
-    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, 1.0, normalWS, viewDirectionWS, clearCoatMask, false);
+    return LightingPhysicallyBased(brdfData, clearCoatBrdfData, lightColor, lightDirection, attenuation, normalWS, viewDirectionWS, clearCoatMask, false);
 #endif
 }
 
-float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, float3 positionWS, half3 normalWS, half3 viewDirectionWS)
+float3 MizotEvaluateLight(uint lightIndex, VirtualLightGpu light, BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, float3 positionWS, half3 normalWS, half3 viewDirectionWS)
 {
     uint flags = (uint)round(light.coneShadowFlags.w);
     uint lightType = (uint)round(light.directionType.w);
@@ -100,7 +147,11 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
             MizotGetVirtualLightBasis(lightForward, light.areaSizeParams.w, shapeRight, shapeUp);
             rangeDistance = max(abs(dot(offsetFromLight, shapeRight)), max(abs(dot(offsetFromLight, shapeUp)), abs(dot(offsetFromLight, lightForward))));
         }
-        return MizotEvaluateSample(light, light.positionRadius.xyz, light.colorIntensity.w, 1.0, rangeDistance, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
+        float pointAttenuation = MizotSampleVirtualLightGobo(lightIndex, light, positionWS);
+#if !defined(MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS) && !defined(_RECEIVE_SHADOWS_OFF)
+        pointAttenuation *= MizotSampleVirtualLightShadow(light.coneShadowFlags.z, 0.0, lightForward, positionWS, normalWS, SafeNormalize(light.positionRadius.xyz - positionWS), false);
+#endif
+        return MizotEvaluateSample(light, light.positionRadius.xyz, light.colorIntensity.w, pointAttenuation, rangeDistance, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     }
     if (lightType == 1u)
     {
@@ -116,13 +167,13 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
             angularCosine = forwardProjection * rsqrt(max(forwardProjection * forwardProjection + lateralProjection * lateralProjection, 1e-8));
         }
         float angleAttenuation = saturate((angularCosine - light.coneShadowFlags.y) / max(light.coneShadowFlags.x - light.coneShadowFlags.y, 1e-5));
-        float spotAttenuation = MizotSpotPenumbraAttenuation(angleAttenuation, light.areaSizeParams.x);
+        float spotAttenuation = MizotSpotPenumbraAttenuation(angleAttenuation, light.areaSizeParams.x) * MizotSampleVirtualLightGobo(lightIndex, light, positionWS);
 #if !defined(MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS) && !defined(_RECEIVE_SHADOWS_OFF)
-        spotAttenuation *= MizotSampleVirtualLightShadow(light.coneShadowFlags.z, positionWS, normalWS, SafeNormalize(light.positionRadius.xyz - positionWS), false);
+        spotAttenuation *= MizotSampleVirtualLightShadow(light.coneShadowFlags.z, 1.0, lightForward, positionWS, normalWS, SafeNormalize(light.positionRadius.xyz - positionWS), false);
 #endif
         return MizotEvaluateSample(light, light.positionRadius.xyz, light.colorIntensity.w, spotAttenuation, -1.0, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     }
-    if (lightType == 3u) return MizotEvaluateDirectionalLight(light, brdfData, clearCoatBrdfData, clearCoatMask, normalWS, viewDirectionWS);
+    if (lightType == 3u) return MizotEvaluateDirectionalLight(lightIndex, light, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     if (lightType != 2u) return 0.0;
     uint sampleCount = clamp((uint)round(light.areaSizeParams.z), 1u, 16u);
     bool horizontal = light.areaSizeParams.x >= light.areaSizeParams.y;
@@ -132,6 +183,10 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
     float3 rotatedUp;
     MizotGetVirtualLightBasis(lightForward, light.areaSizeParams.w, rotatedRight, rotatedUp);
     float sampleArea = light.areaSizeParams.x * light.areaSizeParams.y / sampleCount;
+    float areaAttenuation = MizotSampleVirtualLightGobo(lightIndex, light, positionWS);
+#if !defined(MIZOT_VIRTUAL_LIGHT_DISABLE_SHADOWS) && !defined(_RECEIVE_SHADOWS_OFF)
+    areaAttenuation *= MizotSampleVirtualLightShadow(light.coneShadowFlags.z, 2.0, lightForward, positionWS, normalWS, SafeNormalize(light.positionRadius.xyz - positionWS), false);
+#endif
     float3 result = 0.0;
     [loop]
     for (uint sampleIndex = 0u; sampleIndex < sampleCount; sampleIndex++)
@@ -142,7 +197,7 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
         float3 samplePosition = light.positionRadius.xyz + rotatedRight * unitOffset.x * light.areaSizeParams.x + rotatedUp * unitOffset.y * light.areaSizeParams.y;
         float emissionCosine = dot(lightForward, SafeNormalize(positionWS - samplePosition));
         float directionalAttenuation = (flags & 256u) != 0u ? abs(emissionCosine) : saturate(emissionCosine);
-        result += MizotEvaluateSample(light, samplePosition, light.colorIntensity.w * sampleArea, directionalAttenuation, -1.0, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
+        result += MizotEvaluateSample(light, samplePosition, light.colorIntensity.w * sampleArea, directionalAttenuation * areaAttenuation, -1.0, brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     }
     return result;
 }
@@ -150,20 +205,31 @@ float3 MizotEvaluateLight(VirtualLightGpu light, BRDFData brdfData, BRDFData cle
 float3 MizotEvaluateVirtualLights(BRDFData brdfData, BRDFData clearCoatBrdfData, half clearCoatMask, float3 positionWS, half3 normalWS, half3 viewDirectionWS, float2 normalizedScreenUV)
 {
     float3 result = 0.0;
-    uint firstIndex = 0u;
-    uint lightCount = _VirtualLightCount;
     if (_VirtualLightUseTiling == 1u)
     {
         uint2 tileCoordinates = min((uint2)(normalizedScreenUV * _ScreenParams.xy / max(_VirtualLightTileParams.z, 1.0)), (uint2)_VirtualLightTileParams.xy - 1u);
         uint tileIndex = tileCoordinates.y * (uint)_VirtualLightTileParams.x + tileCoordinates.x;
-        lightCount = min(_VirtualLightTileCounts[tileIndex], (uint)_VirtualLightTileParams.w);
-        firstIndex = tileIndex * (uint)_VirtualLightTileParams.w;
+        uint maskWordCount = (uint)_VirtualLightTileParams.w;
+        uint firstWord = tileIndex * maskWordCount;
+        [loop]
+        for (uint wordIndex = 0u; wordIndex < maskWordCount; wordIndex++)
+        {
+            uint activeMask = _VirtualLightTileIndices[firstWord + wordIndex];
+            [loop]
+            while (activeMask != 0u)
+            {
+                uint bitIndex = firstbitlow(activeMask);
+                uint lightIndex = wordIndex * 32u + bitIndex;
+                if (lightIndex < _VirtualLightCount) result += MizotEvaluateLight(lightIndex, MizotLoadVirtualLight(lightIndex), brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
+                activeMask &= activeMask - 1u;
+            }
+        }
+        return result;
     }
     [loop]
-    for (uint localIndex = 0u; localIndex < lightCount; localIndex++)
+    for (uint lightIndex = 0u; lightIndex < _VirtualLightCount; lightIndex++)
     {
-        uint lightIndex = _VirtualLightUseTiling == 1u ? _VirtualLightTileIndices[firstIndex + localIndex] : localIndex;
-        result += MizotEvaluateLight(MizotLoadVirtualLight(lightIndex), brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
+        result += MizotEvaluateLight(lightIndex, MizotLoadVirtualLight(lightIndex), brdfData, clearCoatBrdfData, clearCoatMask, positionWS, normalWS, viewDirectionWS);
     }
     return result;
 }
