@@ -351,16 +351,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!114 &89519988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -554,7 +554,7 @@ GameObject:
   - component: {fileID: 199822186}
   - component: {fileID: 199822185}
   - component: {fileID: 199822184}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 04
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -748,7 +748,7 @@ GameObject:
   - component: {fileID: 226721510}
   - component: {fileID: 226721509}
   - component: {fileID: 226721508}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Center Satin Monolith
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -982,16 +982,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!114 &253541221
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1153,7 +1153,7 @@ GameObject:
   - component: {fileID: 280380679}
   - component: {fileID: 280380678}
   - component: {fileID: 280380677}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Arena Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1993,7 +1993,7 @@ GameObject:
   - component: {fileID: 559249145}
   - component: {fileID: 559249144}
   - component: {fileID: 559249143}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Right Metal Receiver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2349,7 +2349,7 @@ GameObject:
   - component: {fileID: 628376776}
   - component: {fileID: 628376775}
   - component: {fileID: 628376774}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 06
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2575,7 +2575,7 @@ GameObject:
   - component: {fileID: 761365897}
   - component: {fileID: 761365896}
   - component: {fileID: 761365895}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Stage Apron
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2746,7 +2746,7 @@ GameObject:
   - component: {fileID: 826018495}
   - component: {fileID: 826018494}
   - component: {fileID: 826018493}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2854,7 +2854,7 @@ GameObject:
   - component: {fileID: 836416276}
   - component: {fileID: 836416275}
   - component: {fileID: 836416274}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Arena Back Wall
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3163,7 +3163,7 @@ GameObject:
   - component: {fileID: 943550175}
   - component: {fileID: 943550174}
   - component: {fileID: 943550173}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 03
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3369,7 +3369,7 @@ GameObject:
   - component: {fileID: 1072193408}
   - component: {fileID: 1072193407}
   - component: {fileID: 1072193406}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 02
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3839,16 +3839,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!114 &1254413400
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3908,8 +3908,8 @@ Transform:
   m_GameObject: {fileID: 1271937088}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.000000029802322, y: 0.00000023841858, z: 5.4999995}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: 0.000000074505806, y: 0, z: 1.4933277}
+  m_LocalScale: {x: 0.52259696, y: 0.52259696, z: 2.9866555}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2080697198}
@@ -4094,8 +4094,8 @@ Transform:
   m_GameObject: {fileID: 1305357426}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.00000018626451, y: -0.00000047683716, z: 5.4999995}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: 0.00000006519258, y: -0.00000023841858, z: 3.0733023}
+  m_LocalScale: {x: 1.0755165, y: 1.0755165, z: 6.146605}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 955701293}
@@ -4367,7 +4367,7 @@ GameObject:
   - component: {fileID: 1402709224}
   - component: {fileID: 1402709223}
   - component: {fileID: 1402709222}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Stage Deck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4705,8 +4705,8 @@ Transform:
   m_GameObject: {fileID: 1555215360}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.00000035762787, y: 0.0000011920929, z: 5.500002}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: 0.00000011920929, y: 0.00000059604645, z: 2.9772153}
+  m_LocalScale: {x: 1.0418899, y: 1.0418899, z: 5.9544287}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 639999101}
@@ -4789,7 +4789,7 @@ GameObject:
   - component: {fileID: 1555815968}
   - component: {fileID: 1555815967}
   - component: {fileID: 1555815966}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Left Matte Receiver
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4992,7 +4992,7 @@ GameObject:
   - component: {fileID: 1597872967}
   - component: {fileID: 1597872966}
   - component: {fileID: 1597872965}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 07
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5148,8 +5148,8 @@ Transform:
   m_GameObject: {fileID: 1618708736}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 5.5}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: 0.000000029802322, y: 0.00000023841858, z: 2.848712}
+  m_LocalScale: {x: 0.9969199, y: 0.9969199, z: 5.6974235}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1634244810}
@@ -5492,16 +5492,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!114 &1775170462
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5933,7 +5933,7 @@ GameObject:
   - component: {fileID: 1923057830}
   - component: {fileID: 1923057829}
   - component: {fileID: 1923057828}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Influence Sphere 05
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6057,8 +6057,8 @@ Transform:
   m_GameObject: {fileID: 1925689984}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: -0.00000023841858, z: 5.499999}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: 0, y: 0.00000011920929, z: 1.7882571}
+  m_LocalScale: {x: 0.6258088, y: 0.6258088, z: 3.5765138}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 287798974}
@@ -6246,16 +6246,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!4 &1945885810
 Transform:
   m_ObjectHideFlags: 0
@@ -6358,16 +6358,16 @@ MonoBehaviour:
   impactVisual: {fileID: 0}
   occluderLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 256
   triggerInteraction: 1
   requireOccluderMarker: 1
   fitVisualToSpotCone: 1
   fitImpactToSpotCone: 1
-  truncateVisualAtFirstHit: 0
+  truncateVisualAtFirstHit: 1
   probeRadius: 0
   surfaceOffset: 0.01
   maximumImpactAspectRatio: 8
-  maximumRefreshRate: 60
+  maximumRefreshRate: 30
 --- !u!114 &1981881838
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6545,8 +6545,8 @@ Transform:
   m_GameObject: {fileID: 2122351792}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.00000071525574, z: 5.500002}
-  m_LocalScale: {x: 1.9247504, y: 1.9247504, z: 11}
+  m_LocalPosition: {x: -0.00000008940697, y: 0.00000035762787, z: 2.8518276}
+  m_LocalScale: {x: 0.99801, y: 0.99801, z: 5.7036533}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1818289867}

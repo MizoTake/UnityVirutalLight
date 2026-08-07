@@ -118,16 +118,38 @@ namespace MizoTake.VirtualLight.AdvancedExamples.Tests
         {
             EditorSceneManager.OpenScene("Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity", OpenSceneMode.Single);
             var occlusion = Object.FindFirstObjectByType<VirtualLightBeamOcclusion>(FindObjectsInactive.Include);
+            var movingOccluder = Object.FindObjectsByType<VirtualLightOccluder>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single(item => item.name == "Occluder - Moving Panel");
+            var movingOccluderBody = movingOccluder.GetComponent<Rigidbody>();
 
             Assert.That(occlusion, Is.Not.Null);
+            Assert.That(movingOccluderBody, Is.Not.Null);
+            Assert.That(movingOccluderBody.isKinematic, Is.True);
+            Assert.That(movingOccluderBody.useGravity, Is.False);
             Assert.That(occlusion.ImpactVisual, Is.Not.Null);
             Assert.That(occlusion.ImpactVisual.name, Is.EqualTo("Beam Impact - Analytic Footprint"));
             Assert.That(occlusion.FitImpactToSpotCone, Is.True);
+            Assert.That(occlusion.TruncateVisualAtFirstHit, Is.True);
             Assert.That(occlusion.MaximumImpactAspectRatio, Is.EqualTo(8f).Within(0.001f));
-            Assert.That(occlusion.MaximumRefreshRate, Is.EqualTo(60f).Within(0.001f));
+            Assert.That(occlusion.MaximumRefreshRate, Is.EqualTo(30f).Within(0.001f));
             Assert.That(occlusion.ImpactVisual.localScale.z, Is.EqualTo(0.02f).Within(0.0001f));
             Assert.That(occlusion.ImpactVisual.GetComponent<MeshFilter>().sharedMesh.name, Is.EqualTo("Quad"));
             Assert.That(occlusion.ImpactVisual.GetComponent<Renderer>().sharedMaterial.shader.name, Is.EqualTo("MizoTake/Virtual Light/Impact Footprint"));
+        }
+
+        [TestCase("Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightFeatureLab.unity")]
+        [TestCase("Assets/VirtualLightExamples/Advanced/Scenes/VirtualLightArenaSample.unity")]
+        public void BeamOcclusionScenes_UseDedicatedPhysicsLayer(string scenePath)
+        {
+            EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+            var occluderLayer = LayerMask.NameToLayer("VirtualLightOccluder");
+            var occlusions = Object.FindObjectsByType<VirtualLightBeamOcclusion>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var markedColliders = Object.FindObjectsByType<VirtualLightOccluder>(FindObjectsInactive.Include, FindObjectsSortMode.None).SelectMany(marker => marker.GetComponentsInChildren<Collider>(true)).ToArray();
+
+            Assert.That(occluderLayer, Is.GreaterThanOrEqualTo(0));
+            Assert.That(occlusions, Is.Not.Empty);
+            Assert.That(occlusions.All(occlusion => occlusion.OccluderLayers.value == 1 << occluderLayer), Is.True);
+            Assert.That(markedColliders, Is.Not.Empty);
+            Assert.That(markedColliders.All(collider => collider.gameObject.layer == occluderLayer), Is.True);
         }
 
         [Test]
@@ -139,7 +161,11 @@ namespace MizoTake.VirtualLight.AdvancedExamples.Tests
             Assert.That(spotLights, Has.Length.EqualTo(6));
             foreach (var spotLight in spotLights)
             {
+                var beamOcclusion = spotLight.GetComponent<VirtualLightBeamOcclusion>();
                 var beamVolume = spotLight.GetComponentInChildren<VirtualLightBeamVolume>(true);
+                Assert.That(beamOcclusion, Is.Not.Null, spotLight.name);
+                Assert.That(beamOcclusion.TruncateVisualAtFirstHit, Is.True, spotLight.name);
+                Assert.That(beamOcclusion.MaximumRefreshRate, Is.EqualTo(30f).Within(0.001f), spotLight.name);
                 Assert.That(beamVolume, Is.Not.Null, spotLight.name);
                 var beamMaterial = beamVolume.GetComponent<Renderer>().sharedMaterial;
                 Assert.That(beamMaterial, Is.Not.Null, spotLight.name);

@@ -11,14 +11,26 @@ namespace MizoTake.VirtualLight.Samples
         [SerializeField] private Vector3 clearPosition;
         [SerializeField] private Vector3 blockedPosition;
         [SerializeField, Min(1f)] private float cycleDuration = 7f;
+        private Rigidbody movingOccluderBody;
+
+        private void Awake()
+        {
+            if (movingOccluder != null) movingOccluderBody = movingOccluder.GetComponent<Rigidbody>();
+        }
+
+        private void FixedUpdate()
+        {
+            if (movingOccluder == null) return;
+            var phase = Mathf.Repeat(Time.fixedTime, cycleDuration);
+            var position = Vector3.Lerp(clearPosition, blockedPosition, EvaluateBlockedBlend(phase));
+            if (movingOccluderBody != null) movingOccluderBody.MovePosition(position);
+            else movingOccluder.position = position;
+        }
 
         private void Update()
         {
-            var phase = Mathf.Repeat(Time.time, cycleDuration);
-            var blend = EvaluateBlockedBlend(phase);
-            if (movingOccluder != null) movingOccluder.position = Vector3.Lerp(clearPosition, blockedPosition, blend);
             if (overlay == null || beamOcclusion == null) return;
-            overlay.BeamStatus = beamOcclusion.IsBlocked ? "SHADOWED  -  PANEL BLOCKS BEAM" : "CLEAR  -  FULL BEAM TO TARGET";
+            overlay.BeamStatus = beamOcclusion.IsBlocked ? "SHADOWED  -  FIRST HIT STOPS BEAM" : "CLEAR  -  FULL BEAM TO TARGET";
             overlay.BeamStatusColor = beamOcclusion.IsBlocked ? new Color(1f, 0.48f, 0.24f) : new Color(0.12f, 0.82f, 1f);
         }
 

@@ -11,6 +11,8 @@
 
 各Spotは独立したshadow sliceを持ち、対応するopaque PBRとbeam raymarchが同じvisibilityを参照します。beam同士は遮蔽せず、RGB radianceを加算します。house fillは舞台を読みやすくするRectangle Areaで、Unity標準`Light`は使用していません。
 
+6灯すべてで`Truncate Visual At First Hit`を有効にし、中央Rayが分類済みColliderへ当たった場合はbeam proxyを最初のhit直前まで短縮します。既存の非alloc Raycastを再利用するため追加queryはなく、自動probeは各灯30 Hz、Physics候補は専用`VirtualLightOccluder`レイヤーへ制限しています。中央から外れた部分遮蔽の輪郭は引き続きcustom shadowが担当します。
+
 6灯のmoving headは、現状の円形beam volume / impact footprintとdirect lightの形を一致させるため`Shape = Circle`へ明示固定しています。Rectangle Spotの四角いdirect light / custom shadowと円形beamの組み合わせは`VirtualLightFeatureLab.unity`で確認してください。
 
 各SpotのInner Angleは、beam materialの`Core Half-Width`をOuter Angleの実半径へ換算して設定しています。これによりopaque receiver上の最大照度域と、空中で見える高輝度beam coreの太さが同じになります。Outer Angleは低エネルギーの外周とshadow投影範囲を維持するため、受光円だけを小さく見せる目的で狭めないでください。

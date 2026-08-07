@@ -12,6 +12,8 @@ Directional、Point/SpotのCircle/Rectangle Shape、Rectangle Areaの静的な�
 - PBR: smoothness 0.1〜0.9、metallic、clear coat、normal/mask/emission入力
 - `VirtualLightOccluder`: custom Spot shadowへ描画するRenderer階層の明示
 
-Physics first-hitは中央Raycast/SphereCastの衝突面をimpactや任意のvisual truncationへ使う機能です。`Beam Impact - Analytic Footprint`は4頂点のQuadと専用shaderを使い、正面では円、斜面ではfinite-aperture beamと面の交差から求めた楕円になります。楕円の中心は中央Rayのhit pointから斜面方向へ移動し、1cmの離隔はbeam軸ではなく面法線方向へ適用されます。inner/outer cone間は滑らかに減衰し、scene depthとhit planeが一致しないpixelは描画しません。浅すぎる入射で交線が放物線・双曲線になる場合は、巨大な疑似円を出さず非表示になります。opaque receiverとbeam volumeの正確な可視性は、ライトごとのcustom shadow sliceが担当します。この2つは同じ機能ではありません。
+Physics first-hitは中央Raycastの衝突面をimpactとhard-stop beamへ使う機能です。このシーンでは`Truncate Visual At First Hit`を有効にし、同じ非alloc Raycastの結果で`Raymarch Bounds`自体を最初のhit直前まで短縮します。hitより先のproxyを描画しないためshader内discardで切る方法よりoverdrawを抑えやすく、自動probeは30 Hz、Physics候補は専用`VirtualLightOccluder`レイヤーへ制限しています。移動パネルはkinematic Rigidbodyを`FixedUpdate`から動かし、`Auto Sync Transforms`や毎frameの`Physics.SyncTransforms()`を必要としません。
 
-Play ModeではPointの軌道、Spotの照準、Point / Spotが4秒ごとにCircleとRectangleへ切り替わること、Rectangle時にTransform rollが30度になること、Rectangle Areaの強度変化、遮蔽パネルの移動、遮蔽パネル上でimpactの長短軸と中心が追従することを確認してください。Rectangle Spotではdirect lightとcustom shadowが四角になりますが、beam volumeとimpact footprintは現状の対応範囲どおり円形のままです。
+`Beam Impact - Analytic Footprint`は4頂点のQuadと専用shaderを使い、正面では円、斜面ではfinite-aperture beamと面の交差から求めた楕円になります。楕円の中心は中央Rayのhit pointから斜面方向へ移動し、1cmの離隔はbeam軸ではなく面法線方向へ適用されます。inner/outer cone間は滑らかに減衰し、scene depthとhit planeが一致しないpixelは描画しません。浅すぎる入射で交線が放物線・双曲線になる場合は、巨大な疑似円を出さず非表示になります。中央hitで断面全体を止めるhard-stopと、off-axisを含むopaque receiver／beam volumeの輪郭を表すcustom shadow sliceは用途が異なり、このシーンでは両方を確認できます。
+
+Play ModeではPointの軌道、Spotの照準、Point / Spotが4秒ごとにCircleとRectangleへ切り替わること、Rectangle時にTransform rollが30度になること、Rectangle Areaの強度変化、遮蔽パネルの移動、beamがパネルより先へ出ないこと、遮蔽パネル上でimpactの長短軸と中心が追従することを確認してください。Rectangle Spotではdirect lightとcustom shadowが四角になりますが、beam volumeとimpact footprintは現状の対応範囲どおり円形のままです。
